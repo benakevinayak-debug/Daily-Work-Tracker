@@ -1,0 +1,254 @@
+<!-- Copyright (c) 2026 Vinayak Benake. All rights reserved. Proprietary software. See LICENSE for permissions. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#111318">
+<title>Daily Work Tracker</title>
+<style>
+:root{color-scheme:dark;--bg:#111318;--panel:#1b1e26;--panel2:#242833;--line:#343947;--text:#f4f5f8;--muted:#9299a8;--accent:#6d8cff;--green:#44d7a2;--orange:#ffbd66;--red:#ff6b72}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top left,#1a2031 0,transparent 42%),var(--bg);color:var(--text);font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input,textarea,select{font:inherit}button{cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:10px;padding:10px 14px;font-weight:650;transition:.15s}button:hover{filter:brightness(1.12);transform:translateY(-1px)}button.primary{background:var(--accent);border-color:var(--accent);color:#fff}button.danger{background:#5b222a;border-color:#7c2c36}button.small{padding:6px 9px;font-size:12px}
+.app{max-width:1220px;margin:auto;padding:28px 22px 44px}.topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:26px;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:12px}.logo{width:42px;height:42px;border-radius:13px;background:linear-gradient(135deg,#6d8cff,#9e7bff);display:grid;place-items:center;font-size:21px;font-weight:900}.brand h1{font-size:21px;line-height:1.1;margin:0}.brand p{margin:5px 0 0;color:var(--muted);font-size:12px}.top-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.date-control{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:5px 10px}.date-control input{background:transparent;border:0;color:var(--text);padding:6px 0;outline:none}
+h2{font-size:16px;margin:0 0 15px}.sub{color:var(--muted);font-size:12px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}.stat,.panel{background:linear-gradient(160deg,rgba(255,255,255,.025),transparent 70%),var(--panel);border:1px solid var(--line);border-radius:16px}.stat{padding:17px}.stat-top{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:12px}.stat-icon{width:30px;height:30px;border-radius:9px;background:var(--panel2);display:grid;place-items:center}.stat-value{font-size:28px;font-weight:780;letter-spacing:-.7px;margin:12px 0 3px}.stat-foot{font-size:11px;color:var(--muted)}.stat-foot.good{color:var(--green)}.stat-foot.warn{color:var(--orange)}
+.layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr);gap:16px;align-items:start}.panel{padding:19px;margin-bottom:16px}.panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:15px}.panel-head h2{margin:0}.panel-head .sub{margin-top:4px}.prompt-box{width:100%;min-height:110px;resize:vertical;background:#14171e;border:1px solid #3b4353;border-radius:11px;padding:13px;color:var(--text);outline:none}.prompt-box:focus,input:focus,select:focus,textarea:focus{border-color:var(--accent)!important;box-shadow:0 0 0 3px #6d8cff22}.hint{font-size:11px;color:var(--muted);margin:8px 0 14px}.button-row{display:flex;gap:8px;flex-wrap:wrap}.preview{display:none;margin-top:14px;padding:12px;border:1px solid #3d4d75;background:#20283b;border-radius:10px}.preview.show{display:block}.preview strong{display:block;margin-bottom:5px}.preview p{margin:3px 0;color:#cbd4e8;font-size:12px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}.field label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}.field input,.field select,.field textarea{width:100%;background:#14171e;border:1px solid #373d49;border-radius:9px;padding:10px 11px;color:var(--text);outline:none;min-width:0}.field textarea{min-height:68px;resize:vertical}.form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.chart-wrap{height:240px;position:relative}.chart-wrap canvas{width:100%;height:100%;display:block}.chart-legend{display:flex;gap:16px;font-size:11px;color:var(--muted);margin-top:10px}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}.history-list{display:flex;flex-direction:column;gap:9px}.entry{border:1px solid var(--line);border-radius:12px;padding:12px;background:#191c23}.entry-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.entry-title{font-weight:700}.entry-meta{font-size:11px;color:var(--muted);margin-top:4px}.hours{white-space:nowrap;text-align:right;font-size:12px}.hours b{font-size:15px}.entry-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}.tag{font-size:10px;padding:4px 7px;border-radius:6px;background:#292e3a;color:#c4cce0}.entry-note{font-size:12px;color:#b3bac8;margin-top:8px}.empty{padding:24px 12px;text-align:center;color:var(--muted);font-size:12px}.month-row{display:flex;gap:8px;align-items:center}.month-row input{background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:7px;border-radius:8px}.progress{height:7px;background:#303542;border-radius:10px;overflow:hidden;margin-top:12px}.progress span{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#9c87ff);border-radius:10px;width:0}.efficiency{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:12px;color:var(--muted)}.efficiency strong{color:var(--text)}.toast{position:fixed;bottom:20px;left:50%;transform:translate(-50%,20px);opacity:0;pointer-events:none;background:#eafcf5;color:#10251e;padding:11px 16px;border-radius:10px;font-weight:700;box-shadow:0 8px 30px #0006;transition:.25s;z-index:5}.toast.show{opacity:1;transform:translate(-50%,0)}.footer{text-align:center;color:#697181;font-size:11px;margin-top:14px}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.layout{grid-template-columns:1fr}}@media(max-width:520px){.app{padding:18px 12px 32px}.grid{gap:9px}.stat{padding:13px}.stat-value{font-size:23px}.panel{padding:14px}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.topbar{align-items:flex-start}.brand h1{font-size:18px}.date-control{width:100%;justify-content:space-between}.top-actions{width:100%}.top-actions button{flex:1}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><div class="logo">↗</div><div><h1>Daily Work Tracker</h1><p>Plan clearly. Track honestly. Improve daily.</p></div></div>
+    <div class="top-actions">
+      <div class="date-control"><span aria-hidden="true">▦</span><input id="selectedDate" type="date" aria-label="Selected work date"></div>
+      <button id="exportBtn">Export CSV</button><button id="clearDateBtn" class="danger">Clear date</button>
+    </div>
+  </header>
+
+  <section class="grid" aria-label="Performance summary">
+    <article class="stat"><div class="stat-top"><span>Actual hours · selected date</span><span class="stat-icon">◷</span></div><div class="stat-value" id="dayActual">0.0h</div><div class="stat-foot" id="dayActualFoot">No hours logged yet</div></article>
+    <article class="stat"><div class="stat-top"><span>Bid hours · selected date</span><span class="stat-icon">◎</span></div><div class="stat-value" id="dayBid">0.0h</div><div class="stat-foot" id="dayBidFoot">Estimated workload</div></article>
+    <article class="stat"><div class="stat-top"><span>Monthly actual</span><span class="stat-icon">▤</span></div><div class="stat-value" id="monthActual">0.0h</div><div class="stat-foot" id="monthActualFoot">Across all logged tasks</div></article>
+    <article class="stat"><div class="stat-top"><span>Monthly bid</span><span class="stat-icon">⌁</span></div><div class="stat-value" id="monthBid">0.0h</div><div class="stat-foot" id="monthDiffFoot">Actual vs. estimate</div></article>
+  </section>
+
+  <div class="layout">
+    <main>
+      <section class="panel">
+        <div class="panel-head"><div><h2>Quick log with a prompt</h2><div class="sub">Describe the work in your own words. Review the parsed details before saving.</div></div><span class="stat-icon">✎</span></div>
+        <textarea class="prompt-box" id="promptInput" placeholder="Example: Client Acme, project Summer Ad, asset character walk cycle, bid 3.5 hours, actual 4 hours. Notes: fixed timing and exported preview."></textarea>
+        <div class="hint">Understands phrases such as “bid 3.5h”, “spent 4 hours”, “asset walk cycle”, “client Acme” and “project Summer Ad”. You can edit every field after parsing.</div>
+        <div class="button-row"><button class="primary" id="parseBtn">Parse prompt</button><button id="clearPromptBtn">Clear</button></div>
+        <div class="preview" id="parsePreview"><strong>Parsed successfully — check the fields below</strong><p id="previewText"></p></div>
+      </section>
+
+      <section class="panel" id="entryPanel">
+        <div class="panel-head"><div><h2 id="formTitle">Add a work entry</h2><div class="sub">One entry per task or asset.</div></div></div>
+        <form id="entryForm">
+          <div class="form-grid">
+            <div class="field"><label for="entryDate">Work date</label><input id="entryDate" type="date" required></div>
+            <div class="field"><label for="kind">Type</label><select id="kind"><option>Project work</option><option>Meeting</option><option>Training</option><option>Admin</option><option>Leave</option><option>Other</option></select></div>
+            <div class="field"><label for="client">Client</label><input id="client" placeholder="Client name"></div>
+            <div class="field"><label for="project">Project</label><input id="project" placeholder="Project name"></div>
+            <div class="field"><label for="asset">Asset / task</label><input id="asset" placeholder="e.g. Walk cycle animation"></div>
+            <div class="field"><label for="bidHours">Bid hours</label><input id="bidHours" type="number" min="0" step="0.25" placeholder="e.g. 3.5"></div>
+            <div class="field"><label for="actualHours">Actual hours</label><input id="actualHours" type="number" min="0" step="0.25" required placeholder="e.g. 4"></div>
+            <div class="field full"><label for="notes">Notes</label><textarea id="notes" placeholder="What did you do? Any blockers or outcomes?"></textarea></div>
+          </div>
+          <div class="form-actions"><button type="button" id="cancelEditBtn" style="display:none">Cancel edit</button><button type="submit" class="primary" id="saveBtn">Add entry</button></div>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><div><h2>Daily performance</h2><div class="sub">Bid hours compared with actual hours, by day of the selected month.</div></div><div class="month-row"><input type="month" id="chartMonth" aria-label="Chart month"></div></div>
+        <div class="chart-wrap"><canvas id="performanceChart" aria-label="Daily bid and actual hours chart" role="img"></canvas></div>
+        <div class="chart-legend"><span><i class="dot" style="background:#6d8cff"></i>Bid hours</span><span><i class="dot" style="background:#44d7a2"></i>Actual hours</span></div>
+      </section>
+    </main>
+
+    <aside>
+      <section class="panel">
+        <div class="panel-head"><div><h2>Monthly efficiency</h2><div class="sub" id="monthLabel">Current month</div></div></div>
+        <div style="display:flex;justify-content:space-between;align-items:end;gap:12px"><div><div class="sub">Actual / bid</div><div class="stat-value" id="efficiencyValue" style="font-size:30px;margin:4px 0">—</div></div><div style="text-align:right"><div class="sub">Hour difference</div><strong id="monthDifference">0.0h</strong></div></div>
+        <div class="progress"><span id="efficiencyBar"></span></div>
+        <div class="efficiency"><span>Actual hours against estimate</span><strong id="efficiencyStatus">No data yet</strong></div>
+        <p class="sub" style="margin:13px 0 0">Efficiency here is actual hours ÷ bid hours. Under 100% means the work took less time than estimated; over 100% means it took longer.</p>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><div><h2 id="historyTitle">Entries for selected date</h2><div class="sub">Choose any date above to review or edit past work.</div></div><span class="tag" id="entryCount">0 entries</span></div>
+        <div class="history-list" id="historyList"><div class="empty">Nothing logged for this date yet.</div></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><div><h2>Monthly totals by project</h2><div class="sub">Based on the chart month.</div></div></div>
+        <div id="projectTotals" class="history-list"><div class="empty">No project hours yet.</div></div>
+      </section>
+    </aside>
+  </div>
+  <div class="footer">Your data stays in this browser using local storage. Export CSV regularly as a backup.</div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const STORAGE_KEY = 'dailyWorkTracker.entries.v1';
+  const today = new Date();
+  const dateString = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const monthString = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  let entries = loadEntries();
+  let editingId = null;
+  let parsed = null;
+
+  $('selectedDate').value = dateString(today);
+  $('entryDate').value = dateString(today);
+  $('chartMonth').value = monthString(today);
+
+  function loadEntries(){
+    try { const value = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); return Array.isArray(value) ? value : []; }
+    catch(e){ return []; }
+  }
+  function persist(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); }
+  function num(v){ const n = Number(v); return Number.isFinite(n) && n >= 0 ? n : 0; }
+  function fmt(v){ return `${num(v).toFixed(1)}h`; }
+  function safe(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast.timer); toast.timer=setTimeout(()=>t.classList.remove('show'),2300); }
+  function monthEntries(month){ return entries.filter(e=>e.date && e.date.slice(0,7)===month); }
+  function sum(list,key){ return list.reduce((a,e)=>a+num(e[key]),0); }
+  function selectedEntries(){ return entries.filter(e=>e.date===$('selectedDate').value).sort((a,b)=>(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0)); }
+  function setField(id,value){ $(id).value = value ?? ''; }
+  function resetForm(){
+    editingId=null; $('entryForm').reset(); $('entryDate').value=$('selectedDate').value || dateString(today);
+    $('formTitle').textContent='Add a work entry'; $('saveBtn').textContent='Add entry'; $('cancelEditBtn').style.display='none';
+  }
+  function readForm(){
+    return {date:$('entryDate').value,kind:$('kind').value,client:$('client').value.trim(),project:$('project').value.trim(),asset:$('asset').value.trim(),bidHours:num($('bidHours').value),actualHours:num($('actualHours').value),notes:$('notes').value.trim()};
+  }
+  function fillForm(e){
+    editingId=e.id; $('formTitle').textContent='Edit work entry'; $('saveBtn').textContent='Save changes'; $('cancelEditBtn').style.display='inline-block';
+    for(const [k,id] of Object.entries({date:'entryDate',kind:'kind',client:'client',project:'project',asset:'asset',bidHours:'bidHours',actualHours:'actualHours',notes:'notes'})) setField(id,e[k]);
+    $('entryPanel').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  function parsePrompt(raw){
+    const text=raw.trim(); if(!text) return null;
+    const get=(patterns)=>{for(const re of patterns){const m=text.match(re);if(m&&m[1])return m[1].trim().replace(/[.,;]+$/,'');}return '';};
+    const hours=(patterns)=>{for(const re of patterns){const m=text.match(re);if(m&&m[1])return Number(m[1]);}return '';};
+    const bid=hours([/(?:bid|estimate|estimated|budgeted|planned)\s*(?:hours?|hrs?|time)?\s*(?:is|of|:|=)?\s*(\d+(?:\.\d+)?)/i, /(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|h)\s*(?:bid|estimated|estimate)/i]);
+    const actual=hours([/(?:actual|spent|worked|took|used)\s*(?:hours?|hrs?|time)?\s*(?:is|of|:|=)?\s*(\d+(?:\.\d+)?)/i, /(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|h)\s*(?:actual|spent|worked)/i]);
+    const client=get([/(?:client|customer)\s*[:=-]?\s*([^,;\n.]+)/i]);
+    const project=get([/(?:project)\s*[:=-]?\s*([^,;\n.]+)/i]);
+    let asset=get([/(?:asset|task|work)\s*[:=-]?\s*([^,;\n.]+)/i]);
+    if(!asset){
+      asset=text.replace(/(?:client|customer|project|asset|task|work)\s*[:=-]?\s*[^,;\n.]+/ig,' ')
+        .replace(/(?:bid|estimate|estimated|budgeted|planned|actual|spent|worked|took|used)\s*(?:hours?|hrs?|time)?\s*(?:is|of|:|=)?\s*\d+(?:\.\d+)?/ig,' ')
+        .replace(/\d+(?:\.\d+)?\s*(?:hours?|hrs?|h)\s*(?:bid|estimated|estimate|actual|spent|worked)/ig,' ')
+        .replace(/[;,]+/g,' ').replace(/\s+/g,' ').trim();
+    }
+    const note=get([/(?:notes?|details?)\s*[:=-]\s*([\s\S]+)/i]);
+    const lower=text.toLowerCase();
+    let kind='Project work';
+    if(/\bmeeting|call\b/.test(lower))kind='Meeting'; else if(/\btraining|learn(ing)?\b/.test(lower))kind='Training'; else if(/\badmin|email|documentation\b/.test(lower))kind='Admin'; else if(/\bleave|holiday|sick\b/.test(lower))kind='Leave';
+    return {date:$('selectedDate').value||dateString(today),kind,client,project,asset,bidHours:bid,actualHours:actual,notes:note};
+  }
+  function parseAndFill(){
+    parsed=parsePrompt($('promptInput').value);
+    if(!parsed){toast('Enter a task description first.');return;}
+    for(const [k,id] of Object.entries({date:'entryDate',kind:'kind',client:'client',project:'project',asset:'asset',bidHours:'bidHours',actualHours:'actualHours',notes:'notes'}))setField(id,parsed[k]);
+    $('parsePreview').classList.add('show');
+    $('previewText').textContent=`${parsed.client||'No client'} · ${parsed.project||'No project'} · ${parsed.asset||'Task not detected'} · Bid: ${parsed.bidHours===''?'not found':fmt(parsed.bidHours)} · Actual: ${parsed.actualHours===''?'not found':fmt(parsed.actualHours)}`;
+    $('entryPanel').scrollIntoView({behavior:'smooth',block:'start'});
+    toast('Prompt parsed — review the fields.');
+  }
+  function saveEntry(ev){
+    ev.preventDefault(); const data=readForm();
+    if(!data.date){toast('Please choose a work date.');return;}
+    if($('actualHours').value==='' || !Number.isFinite(Number($('actualHours').value)) || Number($('actualHours').value)<0){toast('Enter valid actual hours.');return;}
+    if(editingId){
+      entries=entries.map(e=>e.id===editingId?{...e,...data,updatedAt:Date.now()}:e);
+      toast('Entry updated.');
+    }else{
+      entries.push({...data,id:crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random(),createdAt:Date.now()});
+      toast('Work entry saved.');
+    }
+    persist(); $('selectedDate').value=data.date; $('chartMonth').value=data.date.slice(0,7); resetForm(); render();
+  }
+  function removeEntry(id){
+    if(!confirm('Delete this work entry? This cannot be undone.'))return;
+    entries=entries.filter(e=>e.id!==id);persist();render();toast('Entry deleted.');
+  }
+  function renderHistory(){
+    const list=selectedEntries(); $('historyTitle').textContent=`Entries for ${$('selectedDate').value||'selected date'}`; $('entryCount').textContent=`${list.length} ${list.length===1?'entry':'entries'}`;
+    const host=$('historyList');
+    if(!list.length){host.innerHTML='<div class="empty">Nothing logged for this date yet.</div>';return;}
+    host.innerHTML=list.map(e=>`<article class="entry"><div class="entry-top"><div><div class="entry-title">${safe(e.asset||e.project||e.kind||'Untitled task')}</div><div class="entry-meta">${safe(e.client||'No client')} · ${safe(e.project||'No project')} · ${safe(e.kind)}</div></div><div class="hours"><b>${fmt(e.actualHours)}</b><div class="sub">actual</div></div></div><div class="entry-tags"><span class="tag">Bid ${fmt(e.bidHours)}</span>${e.asset?`<span class="tag">Asset: ${safe(e.asset)}</span>`:''}</div>${e.notes?`<div class="entry-note">${safe(e.notes)}</div>`:''}<div class="button-row" style="margin-top:10px"><button class="small" data-edit="${safe(e.id)}">Edit</button><button class="small danger" data-delete="${safe(e.id)}">Delete</button></div></article>`).join('');
+    host.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>{const e=entries.find(x=>x.id===b.dataset.edit);if(e)fillForm(e);}));
+    host.querySelectorAll('[data-delete]').forEach(b=>b.addEventListener('click',()=>removeEntry(b.dataset.delete)));
+  }
+  function renderStats(){
+    const day=selectedEntries(), month=monthEntries($('selectedDate').value.slice(0,7)), actual=sum(day,'actualHours'), bid=sum(day,'bidHours'), ma=sum(month,'actualHours'), mb=sum(month,'bidHours'), diff=ma-mb;
+    $('dayActual').textContent=fmt(actual);$('dayBid').textContent=fmt(bid);$('monthActual').textContent=fmt(ma);$('monthBid').textContent=fmt(mb);
+    $('dayActualFoot').textContent=day.length?`${day.length} task${day.length===1?'':'s'} logged`:'No hours logged yet';
+    $('dayBidFoot').textContent=bid?`${actual>bid?'+':''}${(actual-bid).toFixed(1)}h actual vs bid`:'Estimated workload';
+    $('monthActualFoot').textContent=`${month.length} task${month.length===1?'':'s'} this month`;
+    $('monthDiffFoot').textContent=mb?(diff>0?`${diff.toFixed(1)}h over bid`:diff<0?`${Math.abs(diff).toFixed(1)}h under bid`:'On estimate'):'No bid hours recorded';
+    $('monthLabel').textContent=$('selectedDate').value.slice(0,7)||'Selected month';
+    $('monthDifference').textContent=`${diff>=0?'+':''}${diff.toFixed(1)}h`;
+    const pct=mb?ma/mb*100:0;
+    $('efficiencyValue').textContent=mb?`${pct.toFixed(0)}%`:'—';
+    $('efficiencyBar').style.width=`${Math.min(100,pct)}%`;
+    $('efficiencyStatus').textContent=!mb?'No data yet':pct<100?'Under estimate':pct===100?'On estimate':'Over estimate';
+  }
+  function renderProjects(){
+    const month=monthEntries($('chartMonth').value), map={};
+    month.forEach(e=>{const name=e.project||'Unassigned project';if(!map[name])map[name]={actual:0,bid:0,count:0};map[name].actual+=num(e.actualHours);map[name].bid+=num(e.bidHours);map[name].count++;});
+    const rows=Object.entries(map).sort((a,b)=>b[1].actual-a[1].actual), host=$('projectTotals');
+    if(!rows.length){host.innerHTML='<div class="empty">No project hours yet.</div>';return;}
+    host.innerHTML=rows.map(([name,v])=>`<div class="entry"><div class="entry-top"><div><div class="entry-title">${safe(name)}</div><div class="entry-meta">${v.count} task${v.count===1?'':'s'}</div></div><div class="hours"><b>${fmt(v.actual)}</b><div class="sub">of ${fmt(v.bid)} bid</div></div></div></div>`).join('');
+  }
+  function drawChart(){
+    const canvas=$('performanceChart'), rect=canvas.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
+    canvas.width=Math.max(1,Math.floor(rect.width*dpr));canvas.height=Math.max(1,Math.floor(rect.height*dpr));
+    const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+    const w=rect.width,h=rect.height,month=$('chartMonth').value||monthString(today),[year,mon]=month.split('-').map(Number),days=new Date(year,mon,0).getDate();
+    const data=Array.from({length:days},(_,i)=>({day:i+1,bid:0,actual:0}));
+    monthEntries(month).forEach(e=>{const day=Number(e.date.slice(8,10));if(data[day-1]){data[day-1].bid+=num(e.bidHours);data[day-1].actual+=num(e.actualHours);}});
+    ctx.clearRect(0,0,w,h);
+    const left=30,right=8,top=10,bottom=25,plotW=w-left-right,plotH=h-top-bottom;
+    const maxVal=Math.max(4,...data.map(d=>Math.max(d.bid,d.actual)));const step=Math.max(1,Math.ceil(maxVal/4));const max=step*4;
+    ctx.font='10px system-ui';ctx.textAlign='right';ctx.textBaseline='middle';
+    for(let i=0;i<=4;i++){const val=max-i*step,y=top+plotH*i/4;ctx.strokeStyle='#303542';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(w-right,y);ctx.stroke();ctx.fillStyle='#858c9b';ctx.fillText(String(val),left-8,y);}
+    const slot=plotW/days,barW=Math.max(1,Math.min(8,slot*.29)),gap=Math.max(1,slot*.05);
+    data.forEach((d,i)=>{const center=left+i*slot+slot/2;const bh=d.bid/max*plotH,ah=d.actual/max*plotH;ctx.fillStyle='#6d8cff';ctx.fillRect(center-gap/2-barW,top+plotH-bh,barW,bh);ctx.fillStyle='#44d7a2';ctx.fillRect(center+gap/2,top+plotH-ah,barW,ah);});
+    ctx.fillStyle='#858c9b';ctx.textAlign='center';ctx.textBaseline='top';
+    const stride=days>24?5:days>15?3:2;
+    data.forEach((d,i)=>{if(i===0||(d.day%stride===0)||d.day===days)ctx.fillText(String(d.day),left+i*slot+slot/2,top+plotH+7);});
+  }
+  function render(){renderStats();renderHistory();renderProjects();drawChart();}
+  function exportCSV(){
+    const headers=['Date','Type','Client','Project','Asset / Task','Bid Hours','Actual Hours','Notes'];
+    const rows=[headers,...entries.slice().sort((a,b)=>a.date.localeCompare(b.date)).map(e=>[e.date,e.kind,e.client,e.project,e.asset,e.bidHours,e.actualHours,e.notes])];
+    const csv=rows.map(row=>row.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\r\n');
+    const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download=`work-tracker-${dateString(today)}.csv`;a.click();URL.revokeObjectURL(url);toast('CSV export downloaded.');
+  }
+  $('parseBtn').addEventListener('click',parseAndFill);
+  $('promptInput').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')parseAndFill();});
+  $('clearPromptBtn').addEventListener('click',()=>{$('promptInput').value='';$('parsePreview').classList.remove('show');});
+  $('entryForm').addEventListener('submit',saveEntry);
+  $('cancelEditBtn').addEventListener('click',resetForm);
+  $('selectedDate').addEventListener('change',()=>{if(!editingId)$('entryDate').value=$('selectedDate').value; $('chartMonth').value=$('selectedDate').value.slice(0,7);render();});
+  $('chartMonth').addEventListener('change',()=>{renderProjects();drawChart();});
+  $('exportBtn').addEventListener('click',exportCSV);
+  $('clearDateBtn').addEventListener('click',()=>{
+    const date=$('selectedDate').value, count=entries.filter(e=>e.date===date).length;
+    if(!count){toast('No entries to clear for this date.');return;}
+    if(!confirm(`Delete all ${count} entr${count===1?'y':'ies'} for ${date}? This cannot be undone.`))return;
+    entries=entries.filter(e=>e.date!==date);persist();resetForm();render();toast('Date entries cleared.');
+  });
+  window.addEventListener('resize',drawChart);
+  render();
+})();
+</script>
+</body>
+</html>
