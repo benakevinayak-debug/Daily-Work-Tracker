@@ -342,7 +342,7 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
     const reason=String(e.idleReason||''); const known=['Waiting for task assignment','Waiting for client feedback','Waiting for assets or files','Technical issue / software problem','Blocked by another team','Meeting or coordination delay','No tasks assigned']; const match=known.find(x=>reason===x||reason.startsWith(x+': ')); $('idleReason').value=match||(reason?'Other':''); $('idleDetails').value=match?(reason===match?'':reason.slice(match.length+2)):(reason.startsWith('Other: ')?reason.slice(7):''); updateKindFields();
     $('entryPanel').scrollIntoView({behavior:'smooth',block:'start'});
   }
-  function parsePrompt(raw){
+  function parseFreeText(raw){
     const text=raw.trim(); if(!text) return null;
     const get=(patterns)=>{for(const re of patterns){const m=text.match(re);if(m&&m[1])return m[1].trim().replace(/[.,;]+$/,'');}return '';};
     const hours=(patterns)=>{for(const re of patterns){const m=text.match(re);if(m&&m[1])return Number(m[1]);}return '';};
@@ -365,15 +365,83 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
     else if(/\bmeeting|call\b/.test(lower))kind='Meeting'; else if(/\btraining|learn(ing)?\b/.test(lower))kind='Training'; else if(/\badmin|email|documentation\b/.test(lower))kind='Admin'; else if(/\bleave|holiday|sick\b/.test(lower))kind='Leave';
     return {date:$('selectedDate').value||dateString(today),kind,client,project,asset,bidHours:kind==='Idle time'?0:bid,actualHours:actual,idleReason,notes:note};
   }
+  /* ---- Label-style text (timesheet forms / screenshots): WHAT KIND OF TIME / CLIENT / PROJECT / ASSET / HOURS / NOTES ---- */
+  const LABEL_RE=/^\s*(what\s*kind\s*of\s*time|kind\s*of\s*time|type|client|customer|project|asset(?:\s*\/\s*task)?|task|bid\s*hours?|bid|estimated?|actual\s*hours?|actual|hours?|time\s*spent|notes?)\s*(?:\([^)]*\))?\s*([:\-–])?\s*(.*)$/i;
+  const NOISE_RE=/^(select a client|choose a client first|no specific asset|select a project|e\.g\.|what you did|cancel\b|add line|add a line|save\b|\(optional\))/i;
+  function normLabel(l){
+    l=l.toLowerCase();
+    if(/kind|type/.test(l))return 'kind';
+    if(/client|customer/.test(l))return 'client';
+    if(/project/.test(l))return 'project';
+    if(/asset|task/.test(l))return 'asset';
+    if(/bid|estimate/.test(l))return 'bid';
+    if(/actual|hour|time\s*spent/.test(l))return 'actual';
+    return 'notes';
+  }
+  function cleanVal(v){return String(v||'').replace(/\s+[v^˅⌄▼▾›>]$/i,'').replace(/[.,;]+$/,'').trim();}
+  function parseLabeled(text){
+    const lines=text.split(/\r?\n/).map(l=>l.replace(/[|_]+/g,' ').replace(/\s+/g,' ').trim()).filter(Boolean);
+    const sec={};let cur=null,count=0;
+    for(const line of lines){
+      const m=line.match(LABEL_RE), rest=m?m[3].trim():'';
+      // a label stands alone, has a colon/dash, or is an hours label followed by a number (so a value like "Project work" is not mistaken for the Project label)
+      if(m&&(!rest||m[2]||(/bid|actual|hour|time/i.test(m[1])&&/^\d/.test(rest)))){cur=normLabel(m[1]);count++;sec[cur]=sec[cur]||[];if(rest&&!NOISE_RE.test(rest))sec[cur].push(rest);continue;}
+      if(NOISE_RE.test(line))continue;
+      if(cur)sec[cur].push(line);
+    }
+    return count>=2?sec:null;
+  }
+  function mapKind(v){
+    const t=String(v||'').toLowerCase();
+    if(!t)return 'Project work';
+    if(/idle|no work|waiting/.test(t))return 'Idle time';
+    if(/meeting|call|sync/.test(t))return 'Meeting';
+    if(/train|learn/.test(t))return 'Training';
+    if(/admin|email|document/.test(t))return 'Admin';
+    if(/leave|holiday|sick|vacation/.test(t))return 'Leave';
+    if(/project|work/.test(t))return 'Project work';
+    return 'Other';
+  }
+  function findDate(text){
+    const months={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+    const baseYear=Number(($('selectedDate').value||dateString(today)).slice(0,4));
+    let m=text.match(/\b(?:mon|tue|wed|thu|fri|sat|sun)[a-z]*\.?,?\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})\b/i);
+    if(m){const d=new Date(baseYear,months[m[1].toLowerCase()],Number(m[2]));return isNaN(d)?'':dateString(d);}
+    m=text.match(/\b(\d{1,2})[\/.-](\d{1,2})[\/.-](20\d{2})\b/);
+    if(m){const d=new Date(Number(m[3]),Number(m[2])-1,Number(m[1]));return isNaN(d)?'':dateString(d);}
+    return '';
+  }
+  function parsePrompt(raw){
+    const text=String(raw||'').trim(); if(!text)return null;
+    const free=parseFreeText(text), date=findDate(text)||free.date, sec=parseLabeled(text);
+    if(!sec)return {...free,date};
+    const one=k=>cleanVal((sec[k]||[])[0]||'');
+    const hrs=k=>{const m=one(k).match(/\d+(?:[.,]\d+)?/);return m?Number(m[0].replace(',','.')):'';};
+    const kind=mapKind(one('kind')), bid=hrs('bid'), actual=hrs('actual');
+    return {date,kind,client:one('client'),project:one('project'),asset:one('asset'),bidHours:kind==='Idle time'?0:(bid!==''?bid:free.bidHours),actualHours:actual!==''?actual:free.actualHours,idleReason:'',notes:cleanVal((sec.notes||[]).join(' '))};
+  }
+  async function prepareImageForOcr(file){
+    try{
+      const bmp=await createImageBitmap(file);
+      const scale=Math.min(3,Math.max(1,1600/bmp.width));
+      const c=document.createElement('canvas');c.width=Math.round(bmp.width*scale);c.height=Math.round(bmp.height*scale);
+      const g=c.getContext('2d',{willReadFrequently:true});g.imageSmoothingQuality='high';g.drawImage(bmp,0,0,c.width,c.height);
+      const img=g.getImageData(0,0,c.width,c.height),d=img.data;let sum=0;
+      for(let i=0;i<d.length;i+=4){const y=.299*d[i]+.587*d[i+1]+.114*d[i+2];d[i]=d[i+1]=d[i+2]=y;sum+=y;}
+      const dark=(sum/(d.length/4))<128;
+      for(let i=0;i<d.length;i+=4){let y=dark?255-d[i]:d[i];y=Math.max(0,Math.min(255,(y-128)*1.6+128));d[i]=d[i+1]=d[i+2]=y;}
+      g.putImageData(img,0,0);return c;
+    }catch(e){return file;}
+  }
   function parseAndFill(){
     parsed=parsePrompt($('promptInput').value);
     if(!parsed){toast('Enter a task description first.');return;}
     for(const [k,id] of Object.entries({date:'entryDate',kind:'kind',client:'client',project:'project',asset:'asset',bidHours:'bidHours',actualHours:'actualHours',notes:'notes'}))setField(id,parsed[k]);
     if(parsed.kind==='Idle time'){const reason=String(parsed.idleReason||'');const known=['Waiting for task assignment','Waiting for client feedback','Waiting for assets or files','Technical issue / software problem','Blocked by another team','Meeting or coordination delay','No tasks assigned'];const match=known.find(x=>reason.toLowerCase().includes(x.toLowerCase()));$('idleReason').value=match||(reason?'Other':'');$('idleDetails').value=match?'':reason;} updateKindFields();
-    $('parsePreview').classList.add('show');
+    $('parsePreview').classList.remove('show');
     $('previewText').textContent=`${parsed.client||'No client'} · ${parsed.project||'No project'} · ${parsed.asset||'Task not detected'} · Bid: ${parsed.bidHours===''?'not found':fmt(parsed.bidHours)} · Actual: ${parsed.actualHours===''?'not found':fmt(parsed.actualHours)}`;
     $('entryPanel').scrollIntoView({behavior:'smooth',block:'start'});
-    toast('Prompt parsed — review the fields.');
+    {const miss=[];if(!parsed.client)miss.push('client');if(!parsed.project)miss.push('project');if(parsed.actualHours==='')miss.push('hours');toast(miss.length?`Form filled. Not found: ${miss.join(', ')}.`:'Form filled.');}
   }
   function saveEntry(ev){
     ev.preventDefault(); const data=readForm();
@@ -503,15 +571,15 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
     if(!window.Tesseract){$('ocrStatus').textContent='Screenshot received, but text-reading could not load. Check your internet connection and try again.';return;}
     $('ocrStatus').textContent='Reading screenshot and extracting text… this may take a moment.';
     try{
-      const result=await Tesseract.recognize(screenshotImage,'eng',{logger:m=>{if(m.status==='recognizing text')$('ocrStatus').textContent=`Reading screenshot… ${Math.round((m.progress||0)*100)}%`;}});
+      const result=await Tesseract.recognize(await prepareImageForOcr(screenshotImage),'eng',{logger:m=>{if(m.status==='recognizing text')$('ocrStatus').textContent=`Reading screenshot… ${Math.round((m.progress||0)*100)}%`;}});
       const extracted=String(result.data.text||'').trim();
       if(!extracted){$('ocrStatus').textContent='No readable text found. Try a clearer screenshot or type the details manually.';return;}
       const current=$('promptInput').value.trim();
       $('promptInput').value=current ? current+'\n\n'+extracted : extracted;
-      $('ocrStatus').textContent='Screenshot text added to this prompt. Review names, dates, and hours, then click Parse prompt. OCR may misread small text or tables.';
+      $('ocrStatus').textContent='';
       $('promptInput').focus();
       $('promptInput').setSelectionRange($('promptInput').value.length,$('promptInput').value.length);
-      toast('Screenshot text added to Quick Log. Review it before parsing.');
+      parseAndFill();
     }catch(err){$('ocrStatus').textContent='Could not read the screenshot. Try a clearer image or type/paste the text manually.';}
   }
   $('screenshotFile').addEventListener('change',e=>{const file=e.target.files&&e.target.files[0];if(file)setScreenshot(file);});
@@ -519,7 +587,8 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
   $('promptInput').addEventListener('paste',e=>{
     const items=[...(e.clipboardData?.items||[])];
     const item=items.find(x=>x.type&&x.type.startsWith('image/'));
-    if(item){e.preventDefault();const file=item.getAsFile();if(file)setScreenshot(file);}
+    if(item){e.preventDefault();const file=item.getAsFile();if(file)setScreenshot(file);return;}
+    if(!$('promptInput').value.trim())setTimeout(()=>{if($('promptInput').value.trim().length>10)parseAndFill();},0);
   });
   $('promptInput').addEventListener('dragover',e=>{if([...(e.dataTransfer?.items||[])].some(x=>x.type&&x.type.startsWith('image/')))e.preventDefault();});
   $('promptInput').addEventListener('drop',e=>{const file=[...(e.dataTransfer?.files||[])].find(f=>f.type.startsWith('image/'));if(file){e.preventDefault();setScreenshot(file);}});
