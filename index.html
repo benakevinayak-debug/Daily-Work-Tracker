@@ -122,6 +122,7 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
 .jump input{background:transparent;border:0;color:var(--text);padding:6px 4px;outline:none;font-weight:600;font-size:13px}
 .entry-date{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:3px 10px 3px 8px;border-radius:999px;margin-bottom:8px}
 .entry-date svg{width:13px;height:13px}
+.report-text{min-height:290px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.6;white-space:pre-wrap}
 </style>
 </head>
 <body>
@@ -172,6 +173,7 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
             <div class="field"><label for="client">Client</label><input id="client" placeholder="Client name"></div>
             <div class="field"><label for="project">Project</label><input id="project" placeholder="Project name"></div>
             <div class="field"><label for="asset">Asset / task</label><input id="asset" placeholder="e.g. Walk cycle animation"></div>
+            <div class="field"><label for="workStatus">Work status</label><select id="workStatus"><option value="done">Done</option><option value="WIP">WIP (work in progress)</option><option value="review">In review</option><option value="on hold">On hold</option><option value="waiting for feedback">Waiting for feedback</option><option value="blocked">Blocked</option></select></div>
             <div class="field"><label for="bidHours">Bid hours</label><input id="bidHours" type="number" min="0" step="0.25" placeholder="e.g. 3.5"></div>
             <div class="field"><label for="actualHours" id="actualHoursLabel">Actual hours</label><input id="actualHours" type="number" min="0" max="8" step="0.25" required placeholder="e.g. 4"></div>
             <div class="field full idle-field" id="idleReasonField"><label for="idleReason">Why were you idle? (required)</label><select id="idleReason"><option value="">Select a reason</option><option>Waiting for task assignment</option><option>Waiting for client feedback</option><option>Waiting for assets or files</option><option>Technical issue / software problem</option><option>Blocked by another team</option><option>Meeting or coordination delay</option><option>No tasks assigned</option><option>Other</option></select><textarea id="idleDetails" placeholder="Explain the reason (required for Other)"></textarea></div>
@@ -189,6 +191,15 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
     </main>
 
     <aside>
+      <section class="panel" id="reportPanel">
+        <div class="panel-head"><div><h2>Daily report message</h2><div class="sub" id="reportSub">Built from the selected date. Copy and paste into your group.</div></div></div>
+        <div class="form-grid">
+          <div class="field"><label for="reportName">Your name</label><input id="reportName" placeholder="Your name" autocomplete="name"></div>
+          <div class="field"><label for="reportDependency">Dependency</label><input id="reportDependency" placeholder="N/A"></div>
+          <div class="field full"><label for="reportText">Message</label><textarea id="reportText" class="report-text" spellcheck="false" placeholder="Add work entries for this date and your message will appear here."></textarea></div>
+        </div>
+        <div class="form-actions"><button type="button" class="primary" id="copyReportBtn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6a2 2 0 012-2h9"/></svg>Copy message</button></div>
+      </section>
       <section class="panel">
         <div class="panel-head"><div><h2>Monthly efficiency</h2><div class="sub" id="monthLabel">Current month</div></div></div>
         <div style="display:flex;justify-content:space-between;align-items:end;gap:12px"><div><div class="sub">Actual / bid</div><div class="stat-value" id="efficiencyValue" style="font-size:30px;margin:4px 0">—</div></div><div style="text-align:right"><div class="sub">Hour difference</div><strong id="monthDifference">0.0h</strong></div></div>
@@ -312,11 +323,12 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
     const idle=$('kind').value==='Idle time';
     const selectedReason=$('idleReason').value; const details=$('idleDetails').value.trim();
     const idleReason=idle?(selectedReason==='Other'?'Other: '+details:(selectedReason+(details?': '+details:''))):'';
-    return {date:$('entryDate').value,kind:$('kind').value,client:$('client').value.trim(),project:$('project').value.trim(),asset:$('asset').value.trim(),bidHours:idle?0:num($('bidHours').value),actualHours:num($('actualHours').value),idleReason,notes:$('notes').value.trim()};
+    return {date:$('entryDate').value,kind:$('kind').value,client:$('client').value.trim(),project:$('project').value.trim(),asset:$('asset').value.trim(),workStatus:$('workStatus').value,bidHours:idle?0:num($('bidHours').value),actualHours:num($('actualHours').value),idleReason,notes:$('notes').value.trim()};
   }
   function fillForm(e){
     editingId=e.id; $('formTitle').textContent='Edit work entry'; $('saveBtn').textContent='Save changes'; $('cancelEditBtn').style.display='inline-block';
-    for(const [k,id] of Object.entries({date:'entryDate',kind:'kind',client:'client',project:'project',asset:'asset',bidHours:'bidHours',actualHours:'actualHours',notes:'notes'})) setField(id,e[k]);
+    for(const [k,id] of Object.entries({date:'entryDate',kind:'kind',client:'client',project:'project',asset:'asset',workStatus:'workStatus',bidHours:'bidHours',actualHours:'actualHours',notes:'notes'})) setField(id,e[k]);
+    if(!$('workStatus').value)$('workStatus').value='done';
     const reason=String(e.idleReason||''); const known=['Waiting for task assignment','Waiting for client feedback','Waiting for assets or files','Technical issue / software problem','Blocked by another team','Meeting or coordination delay','No tasks assigned']; const match=known.find(x=>reason===x||reason.startsWith(x+': ')); $('idleReason').value=match||(reason?'Other':''); $('idleDetails').value=match?(reason===match?'':reason.slice(match.length+2)):(reason.startsWith('Other: ')?reason.slice(7):''); updateKindFields();
     $('entryPanel').scrollIntoView({behavior:'smooth',block:'start'});
   }
@@ -393,7 +405,7 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
     $('entryCount').textContent=`${list.length} ${list.length===1?'entry':'entries'}`;
     const host=$('historyList');
     if(!list.length){host.innerHTML='<div class="empty">Nothing logged for this date yet.</div>';return;}
-    host.innerHTML=list.map(e=>`<article class="entry"><div class="entry-top"><div>${dateChip(e.date)}<div class="entry-title">${safe(e.asset||e.project||e.kind||'Untitled task')}</div><div class="entry-meta">${safe(e.client||'No client')} · ${safe(e.project||'No project')} · ${safe(e.kind)}</div></div><div class="hours"><b>${fmt(e.actualHours)}</b><div class="sub">${e.kind==='Idle time'?'idle':'actual'}</div></div></div><div class="entry-tags"><span class="tag">Bid ${fmt(e.bidHours)}</span>${e.asset?`<span class="tag">Asset: ${safe(e.asset)}</span>`:''}</div>${e.idleReason?`<div class="entry-note"><strong>Idle reason:</strong> ${safe(e.idleReason)}</div>`:''}${e.notes?`<div class="entry-note">${safe(e.notes)}</div>`:''}<div class="button-row" style="margin-top:10px"><button class="small" data-edit="${safe(e.id)}">Edit</button>${showAllEntries&&e.date?`<button class="small" data-jump="${safe(e.date)}">Go to day</button>`:''}<button class="small danger" data-delete="${safe(e.id)}">Delete</button></div></article>`).join('');
+    host.innerHTML=list.map(e=>`<article class="entry"><div class="entry-top"><div>${dateChip(e.date)}<div class="entry-title">${safe(e.asset||e.project||e.kind||'Untitled task')}</div><div class="entry-meta">${safe(e.client||'No client')} · ${safe(e.project||'No project')} · ${safe(e.kind)}</div></div><div class="hours"><b>${fmt(e.actualHours)}</b><div class="sub">${e.kind==='Idle time'?'idle':'actual'}</div></div></div><div class="entry-tags"><span class="tag">Bid ${fmt(e.bidHours)}</span>${e.asset?`<span class="tag">Asset: ${safe(e.asset)}</span>`:''}${e.workStatus&&e.kind!=='Idle time'?`<span class="tag">${safe(e.workStatus)}</span>`:''}</div>${e.idleReason?`<div class="entry-note"><strong>Idle reason:</strong> ${safe(e.idleReason)}</div>`:''}${e.notes?`<div class="entry-note">${safe(e.notes)}</div>`:''}<div class="button-row" style="margin-top:10px"><button class="small" data-edit="${safe(e.id)}">Edit</button>${showAllEntries&&e.date?`<button class="small" data-jump="${safe(e.date)}">Go to day</button>`:''}<button class="small danger" data-delete="${safe(e.id)}">Delete</button></div></article>`).join('');
     host.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>{const e=entries.find(x=>x.id===b.dataset.edit);if(e)fillForm(e);}));
     host.querySelectorAll('[data-delete]').forEach(b=>b.addEventListener('click',()=>removeEntry(b.dataset.delete)));
     host.querySelectorAll('[data-jump]').forEach(b=>b.addEventListener('click',()=>goToDate(b.dataset.jump)));
@@ -440,7 +452,7 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
     const stride=days>24?5:days>15?3:2;
     data.forEach((d,i)=>{if(i===0||(d.day%stride===0)||d.day===days)ctx.fillText(String(d.day),left+i*slot+slot/2,top+plotH+7);});
   }
-  function render(){renderStats();renderHistory();renderProjects();drawChart();}
+  function render(){renderStats();renderHistory();renderProjects();drawChart();renderReport();}
   function exportCSV(){
     const headers=['Date','Type','Client','Project','Asset / Task','Bid Hours','Actual Hours','Idle Reason','Notes'];
     const rows=[headers,...entries.slice().sort((a,b)=>a.date.localeCompare(b.date)).map(e=>[e.date,e.kind,e.client,e.project,e.asset,e.bidHours,e.actualHours,e.idleReason||'',e.notes])];
@@ -516,6 +528,40 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
     const cur=root.dataset.theme||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'), next=cur==='dark'?'light':'dark';
     root.dataset.theme=next;try{localStorage.setItem(THEME_KEY,next);}catch(e){}drawChart();
   });
+  /* ---- Daily report message ---- */
+  var NAME_KEY='dailyWorkTracker.reportName', DEP_KEY='dailyWorkTracker.dependencies', reportDateShown=null;
+  function readDeps(){try{const v=JSON.parse(localStorage.getItem(DEP_KEY)||'{}');return v&&typeof v==='object'?v:{};}catch(e){return {};}}
+  function titleCase(t){return String(t||'').replace(/\b\w/g,c=>c.toUpperCase());}
+  function buildReport(date,name,dependency){
+    const list=entries.filter(e=>e.date===date&&e.kind!=='Idle time'&&e.kind!=='Leave').sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+    if(!list.length)return '';
+    const groups=[],index={};
+    list.forEach(e=>{
+      const label=(e.client&&e.project)?`${titleCase(e.client)} – ${titleCase(e.project)}`:titleCase(e.client||e.project||e.kind||'Work');
+      const key=label.toLowerCase();
+      if(!(key in index)){index[key]=groups.length;groups.push({label,items:[]});}
+      groups[index[key]].items.push(`Asset: ${e.asset||e.kind||'-'}\nWork Status: ${e.workStatus||'done'}`);
+    });
+    const [y,m,d]=date.split('-');
+    const blocks=groups.map(g=>`Project: ${g.label}\n\n${g.items.join('\n\n')}`);
+    return `Date: ${d}/${m}/${y}\n\nName: ${name||'-'}\n\n${blocks.join('\n\n\n')}\n\n\nDependency: ${dependency||'N/A'}`;
+  }
+  function renderReport(){
+    const date=$('selectedDate').value; if(!date)return;
+    if(reportDateShown!==date){reportDateShown=date;$('reportDependency').value=readDeps()[date]||'';}
+    $('reportText').value=buildReport(date,$('reportName').value.trim(),$('reportDependency').value.trim());
+    const [y,m,d]=date.split('-'); $('reportSub').textContent=`For ${d}/${m}/${y} · refreshes when you add or edit entries.`;
+  }
+  async function copyReport(){
+    const t=$('reportText').value;
+    if(!t.trim()){toast('Add a work entry for this date first.');return;}
+    try{await navigator.clipboard.writeText(t);}catch(e){$('reportText').select();document.execCommand('copy');}
+    toast('Message copied. Paste it in your group.');
+  }
+  try{$('reportName').value=localStorage.getItem(NAME_KEY)||'Vinayak Benake';}catch(e){$('reportName').value='Vinayak Benake';}
+  $('reportName').addEventListener('input',()=>{try{localStorage.setItem(NAME_KEY,$('reportName').value);}catch(e){}renderReport();});
+  $('reportDependency').addEventListener('input',()=>{const deps=readDeps();const v=$('reportDependency').value.trim();if(v)deps[reportDateShown]=v;else delete deps[reportDateShown];try{localStorage.setItem(DEP_KEY,JSON.stringify(deps));}catch(e){}renderReport();});
+  $('copyReportBtn').addEventListener('click',copyReport);
   updateKindFields(); render();
 })();
 </script>
