@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#111318">
 <title>Daily Work Tracker</title>
+<!-- GOOGLE OAUTH CONFIGURATION: Replace the placeholder below with your Web application Client ID. -->
+<script>
+window.WORK_TRACKER_GOOGLE_CLIENT_ID = "840180276534-61aem6i5sat66vb7sa0p2a5uvkpou3ud.apps.googleusercontent.com";
+</script>
 <style>
 :root{color-scheme:dark;--bg:#111318;--panel:#1b1e26;--panel2:#242833;--line:#343947;--text:#f4f5f8;--muted:#9299a8;--accent:#6d8cff;--green:#44d7a2;--orange:#ffbd66;--red:#ff6b72}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top left,#1a2031 0,transparent 42%),var(--bg);color:var(--text);font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -104,10 +108,6 @@ h2{font-size:16px;margin:0 0 15px}.sub{color:var(--muted);font-size:12px}.grid{d
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-<script>
-// Setup instructions are in README.md. Only a public OAuth Client ID belongs here.
-window.WORK_TRACKER_GOOGLE_CLIENT_ID = "PASTE_GOOGLE_OAUTH_CLIENT_ID_HERE";
-</script>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
