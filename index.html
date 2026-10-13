@@ -122,7 +122,7 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
 .jump input{background:transparent;border:0;color:var(--text);padding:6px 4px;outline:none;font-weight:600;font-size:13px}
 .entry-date{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:3px 10px 3px 8px;border-radius:999px;margin-bottom:8px}
 .entry-date svg{width:13px;height:13px}
-.report-text{min-height:290px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.6;white-space:pre-wrap}
+.report-text{min-height:110px;overflow:hidden;resize:none;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.6;white-space:pre-wrap}
 .stat-value.eff-green,strong.eff-green{color:var(--green)}
 .stat-value.eff-blue,strong.eff-blue{color:var(--accent)}
 .stat-value.eff-red,strong.eff-red{color:var(--red)}
@@ -133,6 +133,7 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
 .tag.eff-green{background:color-mix(in srgb,var(--green) 16%,transparent);color:var(--green)}
 .tag.eff-blue{background:var(--accent-soft);color:var(--accent)}
 .tag.eff-red{background:color-mix(in srgb,var(--red) 15%,transparent);color:var(--red)}
+.prompt-box{min-height:76px}
 </style>
 </head>
 <body>
@@ -163,14 +164,13 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
   <div class="layout">
     <main>
       <section class="panel">
-        <div class="panel-head"><div><h2>Quick log with a prompt</h2><div class="sub">Describe the work in your own words. Review the parsed details before saving.</div></div><span class="stat-icon"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></span></div>
-        <textarea class="prompt-box" id="promptInput" aria-label="Quick log prompt. Type work details or paste a screenshot with Ctrl+V" placeholder="Type your work details, or paste a screenshot here with Ctrl+V… Example: Client Acme, project Summer Ad, asset character walk cycle, bid 3.5 hours, actual 4 hours."></textarea>
-        <div class="paste-hint">⌘/Ctrl + V: paste a screenshot directly into this box. Text is extracted into the same prompt for review; you can also type or paste ordinary text here.</div>
-        <div class="hint">Understands phrases such as “bid 3.5h”, “spent 4 hours”, “asset walk cycle”, “client Acme” and “project Summer Ad”. You can edit every field after parsing.</div>
+        <div class="panel-head"><div><h2>Quick log with a prompt</h2><div class="sub">Type or paste a screenshot, then parse.</div></div><span class="stat-icon"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></span></div>
+        <textarea class="prompt-box" id="promptInput" aria-label="Quick log prompt. Type work details or paste a screenshot with Ctrl+V" placeholder="e.g. Client Acme, project Summer Ad, asset walk cycle, bid 3.5h, actual 4h"></textarea>
+                <div class="hint">Ctrl/⌘ + V pastes a screenshot. You can review and edit every field before saving.</div>
         <input id="screenshotFile" type="file" accept="image/*" aria-label="Upload screenshot" hidden>
         <div class="button-row"><button class="primary" id="parseBtn">Parse prompt</button><button id="uploadScreenshotBtn" type="button">Upload screenshot</button><button id="clearPromptBtn">Clear</button></div>
         <img id="screenshotPreview" class="shot-preview" alt="Pasted screenshot preview">
-        <div id="ocrStatus" class="ocr-status" aria-live="polite">Tip: paste a screenshot into the prompt box, or choose Upload screenshot.</div>
+        <div id="ocrStatus" class="ocr-status" aria-live="polite"></div>
         <div class="preview" id="parsePreview"><strong>Parsed successfully — check the fields below</strong><p id="previewText"></p></div>
       </section>
 
@@ -525,7 +525,7 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
   $('promptInput').addEventListener('drop',e=>{const file=[...(e.dataTransfer?.files||[])].find(f=>f.type.startsWith('image/'));if(file){e.preventDefault();setScreenshot(file);}});
   $('parseBtn').addEventListener('click',parseAndFill);
   $('promptInput').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')parseAndFill();});
-  $('clearPromptBtn').addEventListener('click',()=>{$('promptInput').value='';$('parsePreview').classList.remove('show');screenshotImage=null;$('screenshotFile').value='';const url=$('screenshotPreview').dataset.objectUrl;if(url)URL.revokeObjectURL(url);delete $('screenshotPreview').dataset.objectUrl;$('screenshotPreview').removeAttribute('src');$('screenshotPreview').style.display='none';$('ocrStatus').textContent='Tip: paste a screenshot into the prompt box, or choose Upload screenshot.';});
+  $('clearPromptBtn').addEventListener('click',()=>{$('promptInput').value='';$('parsePreview').classList.remove('show');screenshotImage=null;$('screenshotFile').value='';const url=$('screenshotPreview').dataset.objectUrl;if(url)URL.revokeObjectURL(url);delete $('screenshotPreview').dataset.objectUrl;$('screenshotPreview').removeAttribute('src');$('screenshotPreview').style.display='none';$('ocrStatus').textContent='';});
   $('entryForm').addEventListener('submit',saveEntry);
   $('kind').addEventListener('change',updateKindFields);
   $('toggleAllEntriesBtn').addEventListener('click',()=>{showAllEntries=!showAllEntries;renderHistory();});
@@ -577,7 +577,12 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
     const date=$('selectedDate').value; if(!date)return;
     if(reportDateShown!==date){reportDateShown=date;$('reportDependency').value=readDeps()[date]||'';}
     $('reportText').value=buildReport(date,$('reportName').value.trim(),$('reportDependency').value.trim());
+    fitReport();
     const [y,m,d]=date.split('-'); $('reportSub').textContent=`For ${d}/${m}/${y} · refreshes when you add or edit entries.`;
+  }
+  function fitReport(){
+    const ta=$('reportText'); ta.style.height='auto';
+    ta.style.height=(ta.scrollHeight+(ta.offsetHeight-ta.clientHeight))+'px';
   }
   async function copyReport(){
     const t=$('reportText').value;
@@ -588,6 +593,8 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
   try{$('reportName').value=localStorage.getItem(NAME_KEY)||'Vinayak Benake';}catch(e){$('reportName').value='Vinayak Benake';}
   $('reportName').addEventListener('input',()=>{try{localStorage.setItem(NAME_KEY,$('reportName').value);}catch(e){}renderReport();});
   $('reportDependency').addEventListener('input',()=>{const deps=readDeps();const v=$('reportDependency').value.trim();if(v)deps[reportDateShown]=v;else delete deps[reportDateShown];try{localStorage.setItem(DEP_KEY,JSON.stringify(deps));}catch(e){}renderReport();});
+  $('reportText').addEventListener('input',fitReport);
+  window.addEventListener('resize',fitReport);
   $('copyReportBtn').addEventListener('click',copyReport);
   updateKindFields(); render();
 })();
