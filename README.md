@@ -1,47 +1,26 @@
-# Daily Work Tracker
+# Daily Work Tracker — Google Drive edition
 
-**A proprietary daily work tracker owned by Vinayak Benake.**
+Static GitHub Pages tracker with optional Google sign-in and per-account Google Drive storage. No admin account or Supabase required. Each Google account stores its own `DailyWorkTracker-data.json` file in Drive. This is personal-per-account storage, not a shared team database.
 
-A responsive, browser-based work log for tracking tasks, clients, projects, assets, estimated (bid) hours, and actual hours worked. Built with plain HTML, CSS, and JavaScript; no backend or build step is required.
+## Setup
 
-## Features
+1. Open https://console.cloud.google.com/ and create/select a project.
+2. Enable **Google Drive API**.
+3. Configure **Google Auth Platform / OAuth consent screen**. Add app name and contact details. While in Testing mode, add the Google accounts that will test the app as test users.
+4. Create **Credentials → Create credentials → OAuth client ID → Web application**.
+5. Under **Authorized JavaScript origins**, add the origin for your deployed site, e.g. `https://YOUR-USERNAME.github.io` (no repository path).
+6. Copy the OAuth Client ID and replace `PASTE_GOOGLE_OAUTH_CLIENT_ID_HERE` in `index.html`. Do not add a client secret to HTML.
+7. Commit `index.html` to your GitHub repository and wait for Pages to redeploy.
+8. Open your site and click **Continue with Google**. Grant access when Google asks.
 
-- Parse a natural-language task description into editable entry fields.
-- Record work date, work type, client, project, asset/task, bid hours, actual hours, and notes.
-- View, edit, and delete entries for a selected date.
-- Compare daily bid hours with actual hours in a monthly chart.
-- Calculate daily and monthly totals, hour differences, and actual-to-estimated efficiency.
-- Review monthly totals by project.
-- Export all recorded entries to CSV.
-- Save entries in browser `localStorage`.
-- Responsive layout for desktop and mobile screens.
+## How data works
 
-## Run locally
+The app requests the `drive.file` permission. It creates/reads/updates a file named `DailyWorkTracker-data.json` in the signed-in user's Google Drive. Each account gets a separate file. Signing in with the same Google account on another device loads that account's records.
 
-1. Download or clone this repository.
-2. Open `index.html` in a modern browser.
+## Important notes
 
-No dependencies, package manager, server, or API key are required.
-
-## Deploy to GitHub Pages
-
-1. Create a GitHub repository and upload these files to the repository root.
-2. Open **Settings → Pages**.
-3. Under **Build and deployment**, select **Deploy from a branch**.
-4. Select the `main` branch and `/(root)` folder, then save.
-5. Wait for deployment and use the site URL shown in Pages settings.
-
-**Visibility note:** If you want to keep the source code private, make the repository private and confirm that your GitHub plan supports your intended Pages setup. A published website is accessible to visitors you allow to access the site, and client-side HTML/CSS/JavaScript can be inspected by visitors who can open it.
-
-## Data and privacy notes
-
-- Entries are stored in the local storage of the browser and device being used. They are not automatically synced between devices or browsers.
-- Clearing browser site data may remove saved entries. Use **Export CSV** regularly to keep a backup.
-- The natural-language parser uses simple pattern matching. Review parsed fields before saving, especially hours, names, and notes.
-- The tracker does not send your entries to a server.
-
-## Copyright and permissions
-
-Copyright (c) 2026 Vinayak Benake. All rights reserved. This is proprietary software. No permission to use, copy, modify, or redistribute the source code is granted without prior written permission, except where applicable law provides otherwise. See [`LICENSE`](LICENSE).
-
-This is a copyright notice template, not legal advice. Ensure you have the rights to all code and assets you include, and consider professional legal advice if you plan to commercialize or enforce these rights.
+- Google login and Drive access require Google Cloud configuration; GitHub Pages alone cannot enable them.
+- This package uses a browser-based OAuth token flow. Do not store tokens or client secrets in your source code.
+- OAuth consent/testing and verification requirements are set by Google and can change.
+- Drive file synchronization is a starter implementation. Test with non-critical data and keep CSV backups. Concurrent editing on multiple devices may cause one save to overwrite another.
+- If you want all members' data in one combined team dashboard, use a shared database or explicitly designed shared Drive model instead.

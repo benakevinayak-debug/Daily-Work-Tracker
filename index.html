@@ -1,4 +1,3 @@
-<!-- Copyright (c) 2026 Vinayak Benake. All rights reserved. Proprietary software. See LICENSE for permissions. -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -24,10 +23,18 @@ h2{font-size:16px;margin:0 0 15px}.sub{color:var(--muted);font-size:12px}.grid{d
     <div class="brand"><div class="logo">↗</div><div><h1>Daily Work Tracker</h1><p>Plan clearly. Track honestly. Improve daily.</p></div></div>
     <div class="top-actions">
       <div class="date-control"><span aria-hidden="true">▦</span><input id="selectedDate" type="date" aria-label="Selected work date"></div>
+      <button id="googleSignInBtn" class="primary">Continue with Google</button>
+      <button id="googleSignOutBtn" style="display:none">Sign out</button>
       <button id="exportBtn">Export CSV</button><button id="clearDateBtn" class="danger">Clear date</button>
     </div>
+    <div id="googleStatus" class="sub" style="width:100%;text-align:right;margin-top:-14px">Not connected to Google Drive · Local storage active</div>
   </header>
 
+  <section id="googleSetupNotice" class="panel" style="border-color:#6d8cff;margin-bottom:18px">
+    <strong>Connect your Google Drive</strong>
+    <p class="sub" style="margin:6px 0 10px">Configure Google OAuth and enable the Google Drive API. Then add your OAuth Client ID in this HTML file. Until configured, entries remain in this browser.</p>
+    <a href="https://console.cloud.google.com/" target="_blank" rel="noreferrer" style="color:#9bb0ff">Open Google Cloud Console ↗</a>
+  </section>
   <section class="grid" aria-label="Performance summary">
     <article class="stat"><div class="stat-top"><span>Actual hours · selected date</span><span class="stat-icon">◷</span></div><div class="stat-value" id="dayActual">0.0h</div><div class="stat-foot" id="dayActualFoot">No hours logged yet</div></article>
     <article class="stat"><div class="stat-top"><span>Bid hours · selected date</span><span class="stat-icon">◎</span></div><div class="stat-value" id="dayBid">0.0h</div><div class="stat-foot" id="dayBidFoot">Estimated workload</div></article>
@@ -90,6 +97,11 @@ h2{font-size:16px;margin:0 0 15px}.sub{color:var(--muted);font-size:12px}.grid{d
   <div class="footer">Your data stays in this browser using local storage. Export CSV regularly as a backup.</div>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+// Setup instructions are in README.md. Only a public OAuth Client ID belongs here.
+window.WORK_TRACKER_GOOGLE_CLIENT_ID = "947933671489-t9t06c8nmlulj1775st212ep8nso0qfm.apps.googleusercontent.com";
+</script>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
@@ -100,6 +112,58 @@ h2{font-size:16px;margin:0 0 15px}.sub{color:var(--muted);font-size:12px}.grid{d
   let entries = loadEntries();
   let editingId = null;
   let parsed = null;
+  let googleTokenClient = null;
+  let googleAccessToken = null;
+  let driveFileId = null;
+  let driveReady = false;
+  let saveTimer = null;
+  const DRIVE_FILE_NAME = 'DailyWorkTracker-data.json';
+  function googleConfigured(){return window.WORK_TRACKER_GOOGLE_CLIENT_ID && !window.WORK_TRACKER_GOOGLE_CLIENT_ID.includes('PASTE_');}
+  function setGoogleStatus(s){$('googleStatus').textContent=s;}
+  async function driveFetch(url, options={}){
+    const response=await fetch(url,{...options,headers:{Authorization:'Bearer '+googleAccessToken,...(options.headers||{})}});
+    if(!response.ok) throw new Error('Google Drive returned '+response.status+'; please sign in again.');
+    if(response.status===204)return null;
+    return response.json();
+  }
+  async function syncFromDrive(){
+    setGoogleStatus('Loading your Google Drive data…');
+    const q=encodeURIComponent("name='"+DRIVE_FILE_NAME+"' and trashed=false");
+    const found=await driveFetch('https://www.googleapis.com/drive/v3/files?q='+q+'&fields=files(id,name,modifiedTime)&spaces=drive');
+    if(found.files&&found.files.length){
+      found.files.sort((a,b)=>new Date(b.modifiedTime)-new Date(a.modifiedTime));
+      driveFileId=found.files[0].id;
+      const response=await fetch('https://www.googleapis.com/drive/v3/files/'+driveFileId+'?alt=media',{headers:{Authorization:'Bearer '+googleAccessToken}});
+      if(!response.ok)throw new Error('Could not download your tracker file from Drive.');
+      const data=await response.json(); entries=Array.isArray(data.entries)?data.entries:[];
+    }else{
+      const meta=await driveFetch('https://www.googleapis.com/drive/v3/files?fields=id,name',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:DRIVE_FILE_NAME,mimeType:'application/json'})});
+      driveFileId=meta.id; entries=[]; await saveToDrive();
+    }
+    localStorage.setItem(STORAGE_KEY+'.'+(window.googleTrackerEmail||'account'),JSON.stringify(entries));
+    driveReady=true; $('googleSignInBtn').style.display='none'; $('googleSignOutBtn').style.display='inline-block'; $('googleSetupNotice').style.display='none';
+    setGoogleStatus('Google Drive connected · '+(window.googleTrackerEmail||'Google account')); render();
+  }
+  async function saveToDrive(){
+    if(!googleAccessToken||!driveReady||!driveFileId)return;
+    try{
+      const body=JSON.stringify({version:1,updatedAt:new Date().toISOString(),entries});
+      const res=await fetch('https://www.googleapis.com/upload/drive/v3/files/'+driveFileId+'?uploadType=media',{method:'PATCH',headers:{Authorization:'Bearer '+googleAccessToken,'Content-Type':'application/json'},body});
+      if(!res.ok)throw new Error('Drive save failed ('+res.status+').');
+      setGoogleStatus('Saved to Google Drive · '+(window.googleTrackerEmail||'Google account'));
+    }catch(e){setGoogleStatus('Google Drive save failed: '+e.message);toast('Drive save failed. Export a CSV backup.');}
+  }
+  function googleSignIn(){
+    if(!googleConfigured()){alert('Google sign-in is not configured. Follow README.md and replace PASTE_GOOGLE_OAUTH_CLIENT_ID_HERE in index.html.');return;}
+    if(!window.google?.accounts?.oauth2){alert('Google sign-in is loading. Please try again in a moment.');return;}
+    googleTokenClient=google.accounts.oauth2.initTokenClient({client_id:window.WORK_TRACKER_GOOGLE_CLIENT_ID,scope:'https://www.googleapis.com/auth/drive.file email profile',callback:async response=>{
+      if(response.error){setGoogleStatus('Google sign-in failed: '+response.error);return;} googleAccessToken=response.access_token;
+      try{const u=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+googleAccessToken}}).then(r=>r.json());window.googleTrackerEmail=u.email||'';await syncFromDrive();}
+      catch(e){driveReady=false;setGoogleStatus('Could not connect Drive: '+e.message);alert('Google Drive connection failed. Check API and OAuth settings in README.md.');}
+    }}); googleTokenClient.requestAccessToken({prompt:'consent'});
+  }
+  function googleSignOut(){if(googleAccessToken&&window.google?.accounts?.oauth2)google.accounts.oauth2.revoke(googleAccessToken,()=>{});googleAccessToken=null;driveFileId=null;driveReady=false;entries=[];window.googleTrackerEmail='';$('googleSignInBtn').style.display='inline-block';$('googleSignOutBtn').style.display='none';$('googleSetupNotice').style.display='block';setGoogleStatus('Signed out · Sign in to load your Drive data');render();}
+
 
   $('selectedDate').value = dateString(today);
   $('entryDate').value = dateString(today);
@@ -109,7 +173,10 @@ h2{font-size:16px;margin:0 0 15px}.sub{color:var(--muted);font-size:12px}.grid{d
     try { const value = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); return Array.isArray(value) ? value : []; }
     catch(e){ return []; }
   }
-  function persist(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); }
+  function persist(){
+    localStorage.setItem(STORAGE_KEY + (window.googleTrackerEmail ? '.'+window.googleTrackerEmail : ''), JSON.stringify(entries));
+    if(googleAccessToken&&driveReady){clearTimeout(saveTimer);saveTimer=setTimeout(saveToDrive,500);}
+  }
   function num(v){ const n = Number(v); return Number.isFinite(n) && n >= 0 ? n : 0; }
   function fmt(v){ return `${num(v).toFixed(1)}h`; }
   function safe(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -240,6 +307,8 @@ h2{font-size:16px;margin:0 0 15px}.sub{color:var(--muted);font-size:12px}.grid{d
   $('selectedDate').addEventListener('change',()=>{if(!editingId)$('entryDate').value=$('selectedDate').value; $('chartMonth').value=$('selectedDate').value.slice(0,7);render();});
   $('chartMonth').addEventListener('change',()=>{renderProjects();drawChart();});
   $('exportBtn').addEventListener('click',exportCSV);
+  $('googleSignInBtn').addEventListener('click',googleSignIn);
+  $('googleSignOutBtn').addEventListener('click',googleSignOut);
   $('clearDateBtn').addEventListener('click',()=>{
     const date=$('selectedDate').value, count=entries.filter(e=>e.date===date).length;
     if(!count){toast('No entries to clear for this date.');return;}
