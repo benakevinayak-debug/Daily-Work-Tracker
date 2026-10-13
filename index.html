@@ -8,6 +8,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <title>Daily Work Tracker</title>
 <!-- GOOGLE OAUTH CONFIGURATION: Replace the placeholder below with your Web application Client ID. -->
 <script>
@@ -139,7 +143,7 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
 <body>
 <div class="app">
   <header class="topbar">
-    <div class="brand"><div class="logo"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div><div><h1>Daily Work Tracker</h1><p>Plan clearly. Track honestly. Improve daily.</p></div></div>
+    <div class="brand"><div class="logo"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div><h1>Daily Work Tracker</h1><p>Plan clearly. Track honestly. Improve daily.</p></div></div>
     <div class="top-actions">
       <div class="date-control"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><button type="button" id="prevDayBtn" aria-label="Previous day" title="Previous day"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button><input id="selectedDate" type="date" aria-label="Selected work date"><button type="button" id="nextDayBtn" aria-label="Next day" title="Next day"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button><button type="button" id="todayBtn" class="today">Today</button></div>
       <button type="button" id="themeBtn" class="icon-btn" aria-label="Switch light or dark theme" title="Switch light / dark"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3v18" /><path d="M12 3a9 9 0 010 18z" fill="currentColor"/></svg></button><button id="googleSignInBtn" class="primary">Continue with Google</button>
