@@ -184,8 +184,8 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
             <div class="field"><label for="project">Project</label><input id="project" placeholder="Project name"></div>
             <div class="field"><label for="asset">Asset / task</label><input id="asset" placeholder="e.g. Walk cycle animation"></div>
             <div class="field"><label for="workStatus">Work status</label><select id="workStatus"><option value="done">Done</option><option value="WIP">WIP (work in progress)</option><option value="review">In review</option><option value="on hold">On hold</option><option value="waiting for feedback">Waiting for feedback</option><option value="blocked">Blocked</option></select></div>
-            <div class="field"><label for="bidHours">Bid hours</label><input id="bidHours" type="number" min="0" step="0.25" placeholder="e.g. 3.5"></div>
-            <div class="field"><label for="actualHours" id="actualHoursLabel">Actual hours</label><input id="actualHours" type="number" min="0" max="8" step="0.25" required placeholder="e.g. 4"></div>
+            <div class="field"><label for="bidHours">Bid hours</label><input id="bidHours" type="number" min="0" step="any" inputmode="decimal" placeholder="e.g. 3.5"></div>
+            <div class="field"><label for="actualHours" id="actualHoursLabel">Actual hours</label><input id="actualHours" type="number" min="0" max="8" step="any" inputmode="decimal" required placeholder="e.g. 4"></div>
             <div class="field full idle-field" id="idleReasonField"><label for="idleReason">Why were you idle? (required)</label><select id="idleReason"><option value="">Select a reason</option><option>Waiting for task assignment</option><option>Waiting for client feedback</option><option>Waiting for assets or files</option><option>Technical issue / software problem</option><option>Blocked by another team</option><option>Meeting or coordination delay</option><option>No tasks assigned</option><option>Other</option></select><textarea id="idleDetails" placeholder="Explain the reason (required for Other)"></textarea></div>
             <div class="field full"><label for="notes">Notes</label><textarea id="notes" placeholder="What did you do? Any blockers or outcomes?"></textarea></div>
           </div>
@@ -436,7 +436,7 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
   function parseAndFill(){
     parsed=parsePrompt($('promptInput').value);
     if(!parsed){toast('Enter a task description first.');return;}
-    for(const [k,id] of Object.entries({date:'entryDate',kind:'kind',client:'client',project:'project',asset:'asset',bidHours:'bidHours',actualHours:'actualHours',notes:'notes'}))setField(id,parsed[k]);
+    for(const [k,id] of Object.entries({date:'entryDate',kind:'kind',client:'client',project:'project',asset:'asset',bidHours:'bidHours',actualHours:'actualHours',notes:'notes'}))setField(id,k==='bidHours'&&parsed[k]===''?$('bidHours').value:parsed[k]);
     if(parsed.kind==='Idle time'){const reason=String(parsed.idleReason||'');const known=['Waiting for task assignment','Waiting for client feedback','Waiting for assets or files','Technical issue / software problem','Blocked by another team','Meeting or coordination delay','No tasks assigned'];const match=known.find(x=>reason.toLowerCase().includes(x.toLowerCase()));$('idleReason').value=match||(reason?'Other':'');$('idleDetails').value=match?'':reason;} updateKindFields();
     $('parsePreview').classList.remove('show');
     $('previewText').textContent=`${parsed.client||'No client'} · ${parsed.project||'No project'} · ${parsed.asset||'Task not detected'} · Bid: ${parsed.bidHours===''?'not found':fmt(parsed.bidHours)} · Actual: ${parsed.actualHours===''?'not found':fmt(parsed.actualHours)}`;
@@ -449,7 +449,7 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
     if($('actualHours').value==='' || !Number.isFinite(Number($('actualHours').value)) || Number($('actualHours').value)<0 || data.actualHours>8){toast('Enter hours between 0 and 8.');return;}
     if(data.kind==='Idle time' && !data.idleReason){toast('Select a reason for idle time.');$('idleReason').focus();return;}
     if(data.kind==='Idle time' && $('idleReason').value==='Other' && !$('idleDetails').value.trim()){toast('Please explain the idle reason.');$('idleDetails').focus();return;}
-    const sameDay=entries.filter(e=>e.date===data.date && e.id!==editingId); const totalAlready=sameDay.reduce((t,e)=>t+num(e.actualHours),0); if(totalAlready+data.actualHours>8){toast(`This date would exceed the 8-hour daily limit (${(totalAlready+data.actualHours).toFixed(1)}h). Edit existing entries first.`);return;}
+    const sameDay=entries.filter(e=>e.date===data.date && e.id!==editingId); const totalAlready=sameDay.reduce((t,e)=>t+num(e.actualHours),0); if(Math.round((totalAlready+data.actualHours)*100)/100>8){toast(`This date would exceed the 8-hour daily limit (${(totalAlready+data.actualHours).toFixed(1)}h). Edit existing entries first.`);return;}
     if(editingId){
       entries=entries.map(e=>e.id===editingId?{...e,...data,updatedAt:Date.now()}:e);
       toast('Entry updated.');
@@ -518,7 +518,7 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
     $('efficiencyStatus').textContent=eff?eff.label:'No data yet';
     $('efficiencyStatus').className=eff?'eff-'+eff.cls:'';
     $('monthDifference').className=diff>0?'eff-red':diff<0?'eff-green':'';
-    const work=day.filter(e=>e.kind!=='Idle time').reduce((t,e)=>t+num(e.actualHours),0), idle=day.filter(e=>e.kind==='Idle time').reduce((t,e)=>t+num(e.actualHours),0), logged=work+idle, remaining=Math.max(0,8-logged);
+    const work=day.filter(e=>e.kind!=='Idle time').reduce((t,e)=>t+num(e.actualHours),0), idle=day.filter(e=>e.kind==='Idle time').reduce((t,e)=>t+num(e.actualHours),0), logged=Math.round((work+idle)*100)/100, remaining=Math.max(0,8-logged);
     $('dailyBalance').textContent=`${logged.toFixed(1)} / 8.0h`; $('dailyBalanceBar').style.width=`${Math.min(100,logged/8*100)}%`; $('dailyRemaining').textContent=remaining>0?`${remaining.toFixed(1)}h remaining to account for`:logged===8?'All 8 hours accounted for':`${(logged-8).toFixed(1)}h over daily target`; $('dailyBreakdown').textContent=`Task work ${work.toFixed(1)}h · Idle ${idle.toFixed(1)}h`;
   }
   function renderProjects(){
