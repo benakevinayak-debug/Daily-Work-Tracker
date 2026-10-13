@@ -85,7 +85,7 @@ h2{font-size:16px;margin:0 0 15px}.sub{color:var(--muted);font-size:12px}.grid{d
         <p class="sub" style="margin:13px 0 0">Efficiency here is actual hours ÷ bid hours. Under 100% means the work took less time than estimated; over 100% means it took longer.</p>
       </section>
       <section class="panel">
-        <div class="panel-head"><div><h2 id="historyTitle">Entries for selected date</h2><div class="sub">Choose any date above to review or edit past work.</div></div><span class="tag" id="entryCount">0 entries</span></div>
+        <div class="panel-head"><div><h2 id="historyTitle">Entries for selected date</h2><div class="sub">Use Edit to change any task, including older entries.</div></div><div class="button-row"><button type="button" class="small" id="toggleAllEntriesBtn">Show all tasks</button><span class="tag" id="entryCount">0 entries</span></div></div>
         <div class="history-list" id="historyList"><div class="empty">Nothing logged for this date yet.</div></div>
       </section>
       <section class="panel">
@@ -117,6 +117,7 @@ window.WORK_TRACKER_GOOGLE_CLIENT_ID = "947933671489-t9t06c8nmlulj1775st212ep8ns
   let driveFileId = null;
   let driveReady = false;
   let saveTimer = null;
+  let showAllEntries = false;
   const DRIVE_FILE_NAME = 'DailyWorkTracker-data.json';
   function googleConfigured(){return window.WORK_TRACKER_GOOGLE_CLIENT_ID && !window.WORK_TRACKER_GOOGLE_CLIENT_ID.includes('PASTE_');}
   function setGoogleStatus(s){$('googleStatus').textContent=s;}
@@ -245,7 +246,10 @@ window.WORK_TRACKER_GOOGLE_CLIENT_ID = "947933671489-t9t06c8nmlulj1775st212ep8ns
     entries=entries.filter(e=>e.id!==id);persist();render();toast('Entry deleted.');
   }
   function renderHistory(){
-    const list=selectedEntries(); $('historyTitle').textContent=`Entries for ${$('selectedDate').value||'selected date'}`; $('entryCount').textContent=`${list.length} ${list.length===1?'entry':'entries'}`;
+    const list=(showAllEntries ? entries.slice() : selectedEntries()).sort((a,b)=>(b.date||'').localeCompare(a.date||'') || (b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0));
+    $('historyTitle').textContent=showAllEntries?'All work entries':`Entries for ${$('selectedDate').value||'selected date'}`;
+    $('toggleAllEntriesBtn').textContent=showAllEntries?'Show selected date':'Show all tasks';
+    $('entryCount').textContent=`${list.length} ${list.length===1?'entry':'entries'}`;
     const host=$('historyList');
     if(!list.length){host.innerHTML='<div class="empty">Nothing logged for this date yet.</div>';return;}
     host.innerHTML=list.map(e=>`<article class="entry"><div class="entry-top"><div><div class="entry-title">${safe(e.asset||e.project||e.kind||'Untitled task')}</div><div class="entry-meta">${safe(e.client||'No client')} · ${safe(e.project||'No project')} · ${safe(e.kind)}</div></div><div class="hours"><b>${fmt(e.actualHours)}</b><div class="sub">actual</div></div></div><div class="entry-tags"><span class="tag">Bid ${fmt(e.bidHours)}</span>${e.asset?`<span class="tag">Asset: ${safe(e.asset)}</span>`:''}</div>${e.notes?`<div class="entry-note">${safe(e.notes)}</div>`:''}<div class="button-row" style="margin-top:10px"><button class="small" data-edit="${safe(e.id)}">Edit</button><button class="small danger" data-delete="${safe(e.id)}">Delete</button></div></article>`).join('');
@@ -303,6 +307,7 @@ window.WORK_TRACKER_GOOGLE_CLIENT_ID = "947933671489-t9t06c8nmlulj1775st212ep8ns
   $('promptInput').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')parseAndFill();});
   $('clearPromptBtn').addEventListener('click',()=>{$('promptInput').value='';$('parsePreview').classList.remove('show');});
   $('entryForm').addEventListener('submit',saveEntry);
+  $('toggleAllEntriesBtn').addEventListener('click',()=>{showAllEntries=!showAllEntries;renderHistory();});
   $('cancelEditBtn').addEventListener('click',resetForm);
   $('selectedDate').addEventListener('change',()=>{if(!editingId)$('entryDate').value=$('selectedDate').value; $('chartMonth').value=$('selectedDate').value.slice(0,7);render();});
   $('chartMonth').addEventListener('change',()=>{renderProjects();drawChart();});
