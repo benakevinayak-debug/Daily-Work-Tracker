@@ -1,26 +1,19 @@
-# Daily Work Tracker — Google Drive edition
+# Daily Work Tracker
 
-Static GitHub Pages tracker with optional Google sign-in and per-account Google Drive storage. No admin account or Supabase required. Each Google account stores its own `DailyWorkTracker-data.json` file in Drive. This is personal-per-account storage, not a shared team database.
+## Features
+- Add, edit, and delete entries, including entries on previous dates.
+- Daily 8-hour balance with task-work and idle-hour breakdown.
+- Idle-time entry type with a required reason and optional explanation.
+- Quick log prompt parser, including basic idle-time phrasing.
+- Paste or upload a screenshot and run browser OCR to extract visible text into the quick-log prompt. Review and correct OCR output before parsing/saving; OCR can misread small text, numbers, and tables.
+- Monthly summaries, charts, and CSV export.
+- Google sign-in / Drive integration starter. Configure OAuth as described below before expecting Google sync to work.
 
-## Setup
+## Google OAuth setup
+1. In Google Cloud Console, enable the Google Drive API and configure OAuth consent.
+2. Add your Google account under Audience > Test users while the app is in Testing.
+3. Create a Web application OAuth client. Add the deployed origin (for example `https://YOUR-USERNAME.github.io`) as an authorized JavaScript origin.
+4. Replace `PASTE_GOOGLE_OAUTH_CLIENT_ID_HERE` in `index.html` with the client ID.
+5. Deploy `index.html` to GitHub Pages.
 
-1. Open https://console.cloud.google.com/ and create/select a project.
-2. Enable **Google Drive API**.
-3. Configure **Google Auth Platform / OAuth consent screen**. Add app name and contact details. While in Testing mode, add the Google accounts that will test the app as test users.
-4. Create **Credentials → Create credentials → OAuth client ID → Web application**.
-5. Under **Authorized JavaScript origins**, add the origin for your deployed site, e.g. `https://YOUR-USERNAME.github.io` (no repository path).
-6. Copy the OAuth Client ID and replace `PASTE_GOOGLE_OAUTH_CLIENT_ID_HERE` in `index.html`. Do not add a client secret to HTML.
-7. Commit `index.html` to your GitHub repository and wait for Pages to redeploy.
-8. Open your site and click **Continue with Google**. Grant access when Google asks.
-
-## How data works
-
-The app requests the `drive.file` permission. It creates/reads/updates a file named `DailyWorkTracker-data.json` in the signed-in user's Google Drive. Each account gets a separate file. Signing in with the same Google account on another device loads that account's records.
-
-## Important notes
-
-- Google login and Drive access require Google Cloud configuration; GitHub Pages alone cannot enable them.
-- This package uses a browser-based OAuth token flow. Do not store tokens or client secrets in your source code.
-- OAuth consent/testing and verification requirements are set by Google and can change.
-- Drive file synchronization is a starter implementation. Test with non-critical data and keep CSV backups. Concurrent editing on multiple devices may cause one save to overwrite another.
-- If you want all members' data in one combined team dashboard, use a shared database or explicitly designed shared Drive model instead.
+OCR uses Tesseract.js from a CDN, so screenshot reading requires an internet connection. The screenshot is processed in the browser; OCR output is not guaranteed exact. Always verify the extracted date, task names, and hours before saving.
