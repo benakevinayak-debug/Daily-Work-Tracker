@@ -117,6 +117,11 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
 .balance-bar span{background:linear-gradient(90deg,var(--g2),#6cd0b8)}
 .chart-legend .dot{border-radius:50%}
 .preview{background:linear-gradient(135deg,var(--accent-soft),color-mix(in srgb,var(--g2) 10%,transparent))}
+.history-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:-2px 0 14px}
+.jump{display:flex;align-items:center;gap:8px;background:var(--sunken);border:1px solid var(--line);border-radius:10px;padding:2px 6px 2px 10px;color:var(--muted);font-size:12px;font-weight:600}
+.jump input{background:transparent;border:0;color:var(--text);padding:6px 4px;outline:none;font-weight:600;font-size:13px}
+.entry-date{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:3px 10px 3px 8px;border-radius:999px;margin-bottom:8px}
+.entry-date svg{width:13px;height:13px}
 </style>
 </head>
 <body>
@@ -193,6 +198,7 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
       </section>
       <section class="panel">
         <div class="panel-head"><div><h2 id="historyTitle">Entries for selected date</h2><div class="sub">Use Edit to change any task, including older entries.</div></div><div class="button-row"><button type="button" class="small" id="toggleAllEntriesBtn">Show all tasks</button><span class="tag" id="entryCount">0 entries</span></div></div>
+        <div class="history-tools"><label class="jump"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Jump to date</span><input type="date" id="jumpDate" aria-label="Jump to date"></label><button type="button" class="small" id="jumpTodayBtn">Today</button></div>
         <div class="history-list" id="historyList"><div class="empty">Nothing logged for this date yet.</div></div>
       </section>
       <section class="panel">
@@ -367,16 +373,30 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
     if(!confirm('Delete this work entry? This cannot be undone.'))return;
     entries=entries.filter(e=>e.id!==id);persist();render();toast('Entry deleted.');
   }
+  function dateChip(d){
+    if(!d)return '';
+    const dt=new Date(d+'T00:00:00');
+    const label=isNaN(dt)?d:dt.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+    return `<div class="entry-date"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>${safe(label)}</div>`;
+  }
+  function goToDate(d){
+    if(!d)return;
+    showAllEntries=false;
+    $('selectedDate').value=d;
+    $('selectedDate').dispatchEvent(new Event('change'));
+  }
   function renderHistory(){
     const list=(showAllEntries ? entries.slice() : selectedEntries()).sort((a,b)=>(b.date||'').localeCompare(a.date||'') || (b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0));
     $('historyTitle').textContent=showAllEntries?'All work entries':`Entries for ${$('selectedDate').value||'selected date'}`;
     $('toggleAllEntriesBtn').textContent=showAllEntries?'Show selected date':'Show all tasks';
+    $('jumpDate').value=$('selectedDate').value||'';
     $('entryCount').textContent=`${list.length} ${list.length===1?'entry':'entries'}`;
     const host=$('historyList');
     if(!list.length){host.innerHTML='<div class="empty">Nothing logged for this date yet.</div>';return;}
-    host.innerHTML=list.map(e=>`<article class="entry"><div class="entry-top"><div><div class="entry-title">${safe(e.asset||e.project||e.kind||'Untitled task')}</div><div class="entry-meta">${safe(e.client||'No client')} · ${safe(e.project||'No project')} · ${safe(e.kind)}</div></div><div class="hours"><b>${fmt(e.actualHours)}</b><div class="sub">${e.kind==='Idle time'?'idle':'actual'}</div></div></div><div class="entry-tags"><span class="tag">Bid ${fmt(e.bidHours)}</span>${e.asset?`<span class="tag">Asset: ${safe(e.asset)}</span>`:''}</div>${e.idleReason?`<div class="entry-note"><strong>Idle reason:</strong> ${safe(e.idleReason)}</div>`:''}${e.notes?`<div class="entry-note">${safe(e.notes)}</div>`:''}<div class="button-row" style="margin-top:10px"><button class="small" data-edit="${safe(e.id)}">Edit</button><button class="small danger" data-delete="${safe(e.id)}">Delete</button></div></article>`).join('');
+    host.innerHTML=list.map(e=>`<article class="entry"><div class="entry-top"><div>${dateChip(e.date)}<div class="entry-title">${safe(e.asset||e.project||e.kind||'Untitled task')}</div><div class="entry-meta">${safe(e.client||'No client')} · ${safe(e.project||'No project')} · ${safe(e.kind)}</div></div><div class="hours"><b>${fmt(e.actualHours)}</b><div class="sub">${e.kind==='Idle time'?'idle':'actual'}</div></div></div><div class="entry-tags"><span class="tag">Bid ${fmt(e.bidHours)}</span>${e.asset?`<span class="tag">Asset: ${safe(e.asset)}</span>`:''}</div>${e.idleReason?`<div class="entry-note"><strong>Idle reason:</strong> ${safe(e.idleReason)}</div>`:''}${e.notes?`<div class="entry-note">${safe(e.notes)}</div>`:''}<div class="button-row" style="margin-top:10px"><button class="small" data-edit="${safe(e.id)}">Edit</button>${showAllEntries&&e.date?`<button class="small" data-jump="${safe(e.date)}">Go to day</button>`:''}<button class="small danger" data-delete="${safe(e.id)}">Delete</button></div></article>`).join('');
     host.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>{const e=entries.find(x=>x.id===b.dataset.edit);if(e)fillForm(e);}));
     host.querySelectorAll('[data-delete]').forEach(b=>b.addEventListener('click',()=>removeEntry(b.dataset.delete)));
+    host.querySelectorAll('[data-jump]').forEach(b=>b.addEventListener('click',()=>goToDate(b.dataset.jump)));
   }
   function renderStats(){
     const day=selectedEntries(), month=monthEntries($('selectedDate').value.slice(0,7)), dayWork=day.filter(e=>e.kind!=='Idle time'), monthWork=month.filter(e=>e.kind!=='Idle time'), actual=sum(dayWork,'actualHours'), bid=sum(day,'bidHours'), ma=sum(monthWork,'actualHours'), mb=sum(month,'bidHours'), diff=ma-mb;
@@ -470,6 +490,8 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
   $('entryForm').addEventListener('submit',saveEntry);
   $('kind').addEventListener('change',updateKindFields);
   $('toggleAllEntriesBtn').addEventListener('click',()=>{showAllEntries=!showAllEntries;renderHistory();});
+  $('jumpDate').addEventListener('change',()=>goToDate($('jumpDate').value));
+  $('jumpTodayBtn').addEventListener('click',()=>goToDate(dateString(new Date())));
   $('cancelEditBtn').addEventListener('click',resetForm);
   $('selectedDate').addEventListener('change',()=>{if(!editingId)$('entryDate').value=$('selectedDate').value; $('chartMonth').value=$('selectedDate').value.slice(0,7);render();});
   $('chartMonth').addEventListener('change',()=>{renderProjects();drawChart();});
