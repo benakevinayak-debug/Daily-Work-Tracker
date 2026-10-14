@@ -138,9 +138,51 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
 .tag.eff-blue{background:var(--accent-soft);color:var(--accent)}
 .tag.eff-red{background:color-mix(in srgb,var(--red) 15%,transparent);color:var(--red)}
 .prompt-box{min-height:76px}
+.extra-opt{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12.5px;color:var(--muted);cursor:pointer}
+.pending{margin-top:14px;display:flex;flex-direction:column;gap:6px}.pending-head{font-size:12px;font-weight:600;color:var(--muted)}
+.pending-item{display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--line);background:var(--sunken);border-radius:10px;padding:7px 10px;font-size:12.5px}
+.pending-item button{padding:2px 9px;border-radius:7px;font-size:12px}
+.form-actions{flex-wrap:wrap}
+.kind-toggle{display:inline-flex;gap:4px;padding:4px;background:var(--sunken);border:1px solid var(--line);border-radius:12px;margin-bottom:16px}
+.seg{border:0;background:transparent;padding:8px 20px;border-radius:9px;color:var(--muted);font-weight:650}
+.seg:hover{background:var(--accent-soft)}
+.seg.active{background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;box-shadow:0 6px 14px -8px var(--g1)}
+#modeIdleBtn.active{background:linear-gradient(135deg,#d9822b,#e9b36b)}
+.idle-panel{grid-column:1/-1;display:grid;grid-template-rows:0fr;opacity:0;visibility:hidden;transition:grid-template-rows .3s ease,opacity .25s ease,visibility 0s .3s}
+.idle-panel.show{grid-template-rows:1fr;opacity:1;visibility:visible;transition-delay:0s}
+.idle-inner{overflow:hidden;min-height:0}
+.idle-card{display:grid;gap:14px;padding:16px;border:1px solid color-mix(in srgb,var(--orange) 45%,var(--line));background:color-mix(in srgb,var(--orange) 8%,transparent);border-radius:14px}
+.idle-title{font-weight:750;color:var(--orange)}
+.idle-toggle{grid-column:1/-1;justify-content:space-between;width:100%;padding:11px 14px;border-radius:12px;border:1px dashed color-mix(in srgb,var(--orange) 55%,var(--line));background:color-mix(in srgb,var(--orange) 7%,transparent);color:var(--text)}
+.idle-toggle small{color:var(--muted);font-weight:500}.idle-toggle svg{transition:transform .25s}.idle-toggle.open svg{transform:rotate(180deg)}
+.idle-panel{margin-top:-14px;transition:grid-template-rows .3s ease,opacity .25s ease,visibility 0s .3s,margin .3s ease}
+.idle-panel.show{margin-top:0}
+.gate{position:fixed;inset:0;z-index:100;display:none;place-items:center;padding:20px;overflow:auto;background-color:var(--bg);background-image:radial-gradient(700px 420px at 0% -8%,var(--tint1),transparent 70%),radial-gradient(620px 420px at 100% 0%,var(--tint2),transparent 70%),radial-gradient(700px 480px at 55% 108%,var(--tint3),transparent 70%)}
+.gate.show{display:grid}body.gated{overflow:hidden}
+.gate-card{width:100%;max-width:400px;text-align:center;padding:32px 26px;background:var(--surface);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow)}
+.gate-logo{width:64px;height:64px;border-radius:18px;margin:0 auto 16px}.gate-logo svg{width:30px;height:30px}
+.gate-card h1{font-size:24px;margin:0 0 6px;letter-spacing:-.03em;font-weight:800}
+.gate-sub{color:var(--muted);margin:0 0 18px}.gate-msg{min-height:20px;margin-bottom:10px;font-size:13px;color:var(--orange)}
+.gate-actions{display:grid;gap:10px}.gate-actions button{padding:13px 16px;font-size:15px;border-radius:12px}
+.gate-skip{margin-top:14px;border:0;background:transparent;color:var(--muted);text-decoration:underline;padding:6px}.gate-skip:hover{background:transparent;color:var(--text)}
+.gate-note{margin:14px 0 0;font-size:12px;color:var(--muted)}
 </style>
 </head>
 <body>
+<div class="gate show" id="loginGate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+  <div class="gate-card">
+    <div class="logo gate-logo"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+    <h1 id="gateTitle">Daily Work Tracker</h1>
+    <p class="gate-sub">Sign in first so every entry syncs to your Google Drive.</p>
+    <div class="gate-msg" id="gateMsg" aria-live="polite"></div>
+    <div class="gate-actions" id="gateActions">
+      <button type="button" class="primary" id="gateGoogleBtn">Continue with Google</button>
+      <button type="button" id="gateGuestBtn">Continue as guest</button>
+    </div>
+    <button type="button" class="gate-skip" id="gateSkipBtn">Skip for now</button>
+    <p class="gate-note">Guest mode keeps your data on this device only. If you sign in later, your guest entries are added to your Drive.</p>
+  </div>
+</div>
 <div class="app">
   <header class="topbar">
     <div class="brand"><div class="logo"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div><h1>Daily Work Tracker</h1><p>Plan clearly. Track honestly. Improve daily.</p></div></div>
@@ -173,6 +215,7 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
                 <div class="hint">Ctrl/⌘ + V pastes a screenshot. You can review and edit every field before saving.</div>
         <input id="screenshotFile" type="file" accept="image/*" aria-label="Upload screenshot" hidden>
         <div class="button-row"><button class="primary" id="parseBtn">Parse prompt</button><button id="uploadScreenshotBtn" type="button">Upload screenshot</button><button id="clearPromptBtn">Clear</button></div>
+        <label class="extra-opt"><input type="checkbox" id="asExtra"> Add as an extra entry (keeps the form as it is)</label>
         <img id="screenshotPreview" class="shot-preview" alt="Pasted screenshot preview">
         <div id="ocrStatus" class="ocr-status" aria-live="polite"></div>
         <div class="preview" id="parsePreview"><strong>Parsed successfully — check the fields below</strong><p id="previewText"></p></div>
@@ -183,17 +226,19 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
         <form id="entryForm">
           <div class="form-grid">
             <div class="field"><label for="entryDate">Work date</label><input id="entryDate" type="date" required></div>
-            <div class="field"><label for="kind">Type</label><select id="kind"><option>Project work</option><option>Meeting</option><option>Training</option><option>Admin</option><option>Idle time</option><option>Leave</option><option>Other</option></select></div>
+            <div class="field"><label for="kind">Type</label><select id="kind"><option>Project work</option><option>Meeting</option><option>Training</option><option>Admin</option><option value="Idle time">Idle</option><option>Leave</option><option>Other</option></select></div>
             <div class="field"><label for="client">Client</label><input id="client" placeholder="Client name"></div>
             <div class="field"><label for="project">Project</label><input id="project" placeholder="Project name"></div>
             <div class="field"><label for="asset">Asset / task</label><input id="asset" placeholder="e.g. Walk cycle animation"></div>
             <div class="field"><label for="workStatus">Work status</label><select id="workStatus"><option value="done">Done</option><option value="WIP">WIP (work in progress)</option><option value="review">In review</option><option value="on hold">On hold</option><option value="waiting for feedback">Waiting for feedback</option><option value="blocked">Blocked</option></select></div>
             <div class="field"><label for="bidHours">Bid hours</label><input id="bidHours" type="number" min="0" step="any" inputmode="decimal" placeholder="e.g. 3.5"></div>
             <div class="field"><label for="actualHours" id="actualHoursLabel">Actual hours</label><input id="actualHours" type="number" min="0" max="8" step="any" inputmode="decimal" required placeholder="e.g. 4"></div>
-            <div class="field full idle-field" id="idleReasonField"><label for="idleReason">Why were you idle? (required)</label><select id="idleReason"><option value="">Select a reason</option><option>Waiting for task assignment</option><option>Waiting for client feedback</option><option>Waiting for assets or files</option><option>Technical issue / software problem</option><option>Blocked by another team</option><option>Meeting or coordination delay</option><option>No tasks assigned</option><option>Other</option></select><textarea id="idleDetails" placeholder="Explain the reason (required for Other)"></textarea></div>
+            <button type="button" class="idle-toggle" id="idleToggleBtn" aria-expanded="false"><span>Idle time <small>(optional)</small></span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+            <div class="idle-panel" id="idleReasonField"><div class="idle-inner"><div class="idle-card"><div class="idle-title">Idle time</div><div class="field"><label for="idleHours">Idle hours</label><input id="idleHours" type="number" min="0" max="8" step="any" inputmode="decimal" placeholder="e.g. 1.5"></div><div class="field"><label for="idleReason">Why were you idle? (required)</label><select id="idleReason"><option value="">Select a reason</option><option>Waiting for task assignment</option><option>Waiting for client feedback</option><option>Waiting for assets or files</option><option>Technical issue / software problem</option><option>Blocked by another team</option><option>Meeting or coordination delay</option><option>No tasks assigned</option><option>Other</option></select></div><div class="field"><label for="idleDetails">Details</label><textarea id="idleDetails" placeholder="Explain the reason (required for Other)"></textarea></div></div></div></div>
             <div class="field full"><label for="notes">Notes</label><textarea id="notes" placeholder="What did you do? Any blockers or outcomes?"></textarea></div>
           </div>
-          <div class="form-actions"><button type="button" id="cancelEditBtn" style="display:none">Cancel edit</button><button type="submit" class="primary" id="saveBtn">Add entry</button></div>
+          <div class="pending" id="pendingBox" style="display:none"></div>
+          <div class="form-actions"><button type="button" id="addAnotherBtn">+ Add another entry</button><button type="button" id="cancelEditBtn" style="display:none">Cancel edit</button><button type="submit" class="primary" id="saveBtn">Add entry</button></div>
         </form>
       </section>
 
@@ -257,13 +302,71 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
   const DRIVE_FILE_NAME = 'DailyWorkTracker-data.json';
   function googleConfigured(){return window.WORK_TRACKER_GOOGLE_CLIENT_ID && !window.WORK_TRACKER_GOOGLE_CLIENT_ID.includes('PASTE_');}
   function setGoogleStatus(s){$('googleStatus').textContent=s;}
-  async function driveFetch(url, options={}){
-    const response=await fetch(url,{...options,headers:{Authorization:'Bearer '+googleAccessToken,...(options.headers||{})}});
+  /* ---- Google session: stays signed in across reloads and renews the 1-hour token ---- */
+  var googleExpiresAt=0, refreshTimer=null, tokenWaiters=[], mergeLocal=false;
+  const SESSION_KEY='dailyWorkTracker.googleSession', GOOGLE_SCOPE='https://www.googleapis.com/auth/drive.file email profile';
+  function saveSession(){try{localStorage.setItem(SESSION_KEY,JSON.stringify({token:googleAccessToken,expiresAt:googleExpiresAt,email:window.googleTrackerEmail||'',connected:true}));}catch(e){}}
+  function loadSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||'null');}catch(e){return null;}}
+  function clearSession(){try{localStorage.removeItem(SESSION_KEY);}catch(e){}}
+  function tokenValid(){return !!googleAccessToken&&googleExpiresAt-60000>Date.now();}
+  function scheduleRefresh(){clearTimeout(refreshTimer);if(!googleExpiresAt)return;refreshTimer=setTimeout(()=>refreshToken('').then(afterToken).catch(needReconnect),Math.max(5000,googleExpiresAt-Date.now()-300000));}
+  function getTokenClient(){
+    if(googleTokenClient)return googleTokenClient;
+    googleTokenClient=google.accounts.oauth2.initTokenClient({client_id:window.WORK_TRACKER_GOOGLE_CLIENT_ID,scope:GOOGLE_SCOPE,
+      callback:response=>{
+        const w=tokenWaiters.splice(0);
+        if(response.error){w.forEach(x=>x.reject(new Error(response.error)));return;}
+        googleAccessToken=response.access_token; googleExpiresAt=Date.now()+(Number(response.expires_in)||3600)*1000;
+        saveSession(); scheduleRefresh(); w.forEach(x=>x.resolve(googleAccessToken));
+      },
+      error_callback:err=>{tokenWaiters.splice(0).forEach(x=>x.reject(new Error((err&&err.type)||'popup_failed')));}});
+    return googleTokenClient;
+  }
+  function refreshToken(prompt){
+    return new Promise((resolve,reject)=>{
+      if(!window.google?.accounts?.oauth2){reject(new Error('Google is still loading'));return;}
+      const w={resolve,reject}; tokenWaiters.push(w);
+      setTimeout(()=>{const i=tokenWaiters.indexOf(w);if(i>-1){tokenWaiters.splice(i,1);reject(new Error('timeout'));}},20000);
+      const hint=window.googleTrackerEmail||'';
+      getTokenClient().requestAccessToken({prompt:prompt||'',...(hint?{hint}:{})});
+    });
+  }
+  async function ensureToken(){return tokenValid()?googleAccessToken:refreshToken('');}
+  async function afterToken(){
+    if(!window.googleTrackerEmail){const u=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+googleAccessToken}}).then(r=>r.json());window.googleTrackerEmail=u.email||'';saveSession();}
+    $('googleSignInBtn').style.display='none'; $('googleSignOutBtn').style.display='inline-block';
+    if(driveReady)await saveToDrive(); else await syncFromDrive();
+  }
+  function needReconnect(){
+    setGoogleStatus('Google session paused · tap anywhere to reconnect');
+    $('googleSignInBtn').style.display='inline-block'; $('googleSignInBtn').textContent='Reconnect Google';
+    const go=async ev=>{
+      document.removeEventListener('pointerdown',go,true);
+      if(ev.target.closest&&ev.target.closest('#googleSignInBtn'))return;
+      try{await refreshToken('');await afterToken();}catch(e){setGoogleStatus('Reconnect needed · press the Reconnect Google button');}
+    };
+    document.addEventListener('pointerdown',go,true);
+  }
+  async function restoreSession(){
+    const sess=loadSession(); if(!sess||!sess.connected||!googleConfigured())return;
+    window.googleTrackerEmail=sess.email||'';
+    for(let i=0;i<40&&!window.google?.accounts?.oauth2;i++)await new Promise(r=>setTimeout(r,250));
+    if(sess.token&&sess.expiresAt-60000>Date.now()){
+      googleAccessToken=sess.token; googleExpiresAt=sess.expiresAt; scheduleRefresh();
+      try{await syncFromDrive();return;}catch(e){}
+    }
+    try{await refreshToken('');await afterToken();}catch(e){showGate('Your Google session ended. Sign in again, or continue as a guest.');}
+  }
+  async function driveFetch(url, options={}, retry=true){
+    const token=await ensureToken();
+    const response=await fetch(url,{...options,headers:{Authorization:'Bearer '+token,...(options.headers||{})}});
+    if(response.status===401&&retry){googleExpiresAt=0;return driveFetch(url,options,false);}
     if(!response.ok) throw new Error('Google Drive returned '+response.status+'; please sign in again.');
     if(response.status===204)return null;
     return response.json();
   }
   async function syncFromDrive(){
+    const guestEntries=(mergeLocal&&!driveReady)?entries.slice():[]; mergeLocal=false;
     setGoogleStatus('Loading your Google Drive data…');
     const q=encodeURIComponent("name='"+DRIVE_FILE_NAME+"' and trashed=false");
     const found=await driveFetch('https://www.googleapis.com/drive/v3/files?q='+q+'&fields=files(id,name,modifiedTime)&spaces=drive');
@@ -277,29 +380,33 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
       const meta=await driveFetch('https://www.googleapis.com/drive/v3/files?fields=id,name',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:DRIVE_FILE_NAME,mimeType:'application/json'})});
       driveFileId=meta.id; entries=[]; await saveToDrive();
     }
+    let merged=0; if(guestEntries.length){const have=new Set(entries.map(e=>e.id));const extra=guestEntries.filter(e=>e&&e.id&&!have.has(e.id));merged=extra.length;entries=entries.concat(extra);}
     localStorage.setItem(STORAGE_KEY+'.'+(window.googleTrackerEmail||'account'),JSON.stringify(entries));
     driveReady=true; $('googleSignInBtn').style.display='none'; $('googleSignOutBtn').style.display='inline-block'; $('googleSetupNotice').style.display='none';
-    setGoogleStatus('Google Drive connected · '+(window.googleTrackerEmail||'Google account')); render();
+    setGoogleStatus('Google Drive connected · '+(window.googleTrackerEmail||'Google account')); render(); hideGate();
+    if(merged){try{localStorage.removeItem(STORAGE_KEY);}catch(e){}await saveToDrive();toast(merged+' guest entr'+(merged>1?'ies':'y')+' added to your Drive.');}
   }
   async function saveToDrive(){
     if(!googleAccessToken||!driveReady||!driveFileId)return;
+    const put=token=>fetch('https://www.googleapis.com/upload/drive/v3/files/'+driveFileId+'?uploadType=media',{method:'PATCH',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({version:1,updatedAt:new Date().toISOString(),entries})});
     try{
-      const body=JSON.stringify({version:1,updatedAt:new Date().toISOString(),entries});
-      const res=await fetch('https://www.googleapis.com/upload/drive/v3/files/'+driveFileId+'?uploadType=media',{method:'PATCH',headers:{Authorization:'Bearer '+googleAccessToken,'Content-Type':'application/json'},body});
+      let res=await put(await ensureToken());
+      if(res.status===401){googleExpiresAt=0;res=await put(await ensureToken());}
       if(!res.ok)throw new Error('Drive save failed ('+res.status+').');
       setGoogleStatus('Saved to Google Drive · '+(window.googleTrackerEmail||'Google account'));
-    }catch(e){setGoogleStatus('Google Drive save failed: '+e.message);toast('Drive save failed. Export a CSV backup.');}
+    }catch(e){needReconnect();toast('Saved on this device. It will sync to Drive after you reconnect.');}
   }
-  function googleSignIn(){
+  async function googleSignIn(){
     if(!googleConfigured()){alert('Google sign-in is not configured. Follow README.md and replace PASTE_GOOGLE_OAUTH_CLIENT_ID_HERE in index.html.');return;}
     if(!window.google?.accounts?.oauth2){alert('Google sign-in is loading. Please try again in a moment.');return;}
-    googleTokenClient=google.accounts.oauth2.initTokenClient({client_id:window.WORK_TRACKER_GOOGLE_CLIENT_ID,scope:'https://www.googleapis.com/auth/drive.file email profile',callback:async response=>{
-      if(response.error){setGoogleStatus('Google sign-in failed: '+response.error);return;} googleAccessToken=response.access_token;
-      try{const u=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+googleAccessToken}}).then(r=>r.json());window.googleTrackerEmail=u.email||'';await syncFromDrive();}
-      catch(e){driveReady=false;setGoogleStatus('Could not connect Drive: '+e.message);alert('Google Drive connection failed. Check API and OAuth settings in README.md.');}
-    }}); googleTokenClient.requestAccessToken({prompt:'consent'});
+    mergeLocal=true;
+    try{await refreshToken((loadSession()||{}).connected?'':'consent');}catch(e){setGoogleStatus('Google sign-in failed: '+e.message);return;}
+    try{
+      const u=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+googleAccessToken}}).then(r=>r.json());
+      window.googleTrackerEmail=u.email||''; saveSession(); $('googleSignInBtn').textContent='Continue with Google'; await syncFromDrive();
+    }catch(e){driveReady=false;setGoogleStatus('Could not connect Drive: '+e.message);alert('Google Drive connection failed. Check API and OAuth settings in README.md.');}
   }
-  function googleSignOut(){if(googleAccessToken&&window.google?.accounts?.oauth2)google.accounts.oauth2.revoke(googleAccessToken,()=>{});googleAccessToken=null;driveFileId=null;driveReady=false;entries=[];window.googleTrackerEmail='';$('googleSignInBtn').style.display='inline-block';$('googleSignOutBtn').style.display='none';$('googleSetupNotice').style.display='block';setGoogleStatus('Signed out · Sign in to load your Drive data');render();}
+  function googleSignOut(){if(googleAccessToken&&window.google?.accounts?.oauth2)google.accounts.oauth2.revoke(googleAccessToken,()=>{});googleAccessToken=null;googleExpiresAt=0;clearTimeout(refreshTimer);clearSession();$('googleSignInBtn').textContent='Continue with Google';driveFileId=null;driveReady=false;entries=[];window.googleTrackerEmail='';$('googleSignInBtn').style.display='inline-block';$('googleSignOutBtn').style.display='none';$('googleSetupNotice').style.display='block';setGoogleStatus('Signed out · Sign in to load your Drive data');try{sessionStorage.removeItem('dailyWorkTracker.guest');}catch(e){}showGate('You have signed out.');render();}
 
 
   $('selectedDate').value = dateString(today);
@@ -324,14 +431,26 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
   function setField(id,value){ $(id).value = value ?? ''; }
   function resetForm(){
     editingId=null; $('entryForm').reset(); $('entryDate').value=$('selectedDate').value || dateString(today);
-    $('formTitle').textContent='Add a work entry'; $('saveBtn').textContent='Add entry'; $('cancelEditBtn').style.display='none'; updateKindFields();
+    $('formTitle').textContent='Add a work entry'; $('saveBtn').textContent='Add entry'; $('cancelEditBtn').style.display='none'; idleOpen=false; updateKindFields(); renderPending();
   }
   function updateKindFields(){
-    const idle=$('kind').value==='Idle time';
-    $('idleReasonField').classList.toggle('show',idle); $('idleReason').required=idle;
-    $('actualHoursLabel').textContent=idle?'Idle hours':'Actual hours';
-    $('asset').placeholder=idle?'Optional: what were you waiting for?':'e.g. Walk cycle animation';
+    const idle=$('kind').value==='Idle time', open=idle||(idleOpen&&!editingId);
+    $('idleReasonField').classList.toggle('show',open);
+    $('idleToggleBtn').classList.toggle('open',open); $('idleToggleBtn').setAttribute('aria-expanded',String(open));
+    $('idleToggleBtn').style.display=(idle||editingId)?'none':'';
+    $('idleReason').required=idle; $('idleHours').required=idle;
+    ['client','project','asset','workStatus','bidHours','actualHours'].forEach(id=>{$(id).closest('.field').style.display=idle?'none':'';});
+    $('actualHours').required=!idle&&!open;
+    if(idle)$('idleHours').value=$('actualHours').value;
     $('bidHours').disabled=idle; if(idle)$('bidHours').value='0';
+  }
+  function idleAddon(data){
+    if(!idleOpen||editingId||data.kind==='Idle time'||$('idleHours').value==='')return null;
+    const hrs=Number($('idleHours').value), sel=$('idleReason').value, det=$('idleDetails').value.trim();
+    if(!Number.isFinite(hrs)||hrs<=0||hrs>8){toast('Enter idle hours between 0 and 8.');return false;}
+    if(!sel){toast('Select a reason for idle time.');$('idleReason').focus();return false;}
+    if(sel==='Other'&&!det){toast('Please explain the idle reason.');$('idleDetails').focus();return false;}
+    return {date:data.date,kind:'Idle time',client:data.client,project:data.project,asset:'',workStatus:'',bidHours:0,actualHours:hrs,idleReason:sel==='Other'?'Other: '+det:sel+(det?': '+det:''),notes:''};
   }
   function readForm(){
     const idle=$('kind').value==='Idle time';
@@ -340,7 +459,7 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
     return {date:$('entryDate').value,kind:$('kind').value,client:$('client').value.trim(),project:$('project').value.trim(),asset:$('asset').value.trim(),workStatus:$('workStatus').value,bidHours:idle?0:num($('bidHours').value),actualHours:num($('actualHours').value),idleReason,notes:$('notes').value.trim()};
   }
   function fillForm(e){
-    editingId=e.id; $('formTitle').textContent='Edit work entry'; $('saveBtn').textContent='Save changes'; $('cancelEditBtn').style.display='inline-block';
+    editingId=e.id; $('formTitle').textContent='Edit work entry'; $('saveBtn').textContent='Save changes'; $('cancelEditBtn').style.display='inline-block'; $('addAnotherBtn').style.display='none';
     for(const [k,id] of Object.entries({date:'entryDate',kind:'kind',client:'client',project:'project',asset:'asset',workStatus:'workStatus',bidHours:'bidHours',actualHours:'actualHours',notes:'notes'})) setField(id,e[k]);
     if(!$('workStatus').value)$('workStatus').value='done';
     const reason=String(e.idleReason||''); const known=['Waiting for task assignment','Waiting for client feedback','Waiting for assets or files','Technical issue / software problem','Blocked by another team','Meeting or coordination delay','No tasks assigned']; const match=known.find(x=>reason===x||reason.startsWith(x+': ')); $('idleReason').value=match||(reason?'Other':''); $('idleDetails').value=match?(reason===match?'':reason.slice(match.length+2)):(reason.startsWith('Other: ')?reason.slice(7):''); updateKindFields();
@@ -437,29 +556,110 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
       g.putImageData(img,0,0);return c;
     }catch(e){return file;}
   }
+  /* ---- Dynamic parser: any layout, several records, uses your saved clients/projects ---- */
+  var pending=[], idleOpen=false;
+  const FLAG_RE=/\b(flagged|warning|alert|overrun|exceed(?:s|ed)?|over\s*limit)\b/i;
+  const CODE_RE=/\b([A-Z]{2,6})\s*[-–—_]\s*([0-9OolI]{2,6})\b(?:\s*[-–—]?\s*([A-Za-z]\d{0,3})\b)?/;
+  const HOURS_RE=/(\d+(?:[.,]\d+)?)\s*(?:h|hr|hrs|hours?)\b/i;
+  const esc=t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  function knownLists(){const u=k=>[...new Set(entries.map(e=>String(e[k]||'').trim()).filter(Boolean))].sort((a,b)=>b.length-a.length);return {clients:u('client'),projects:u('project')};}
+  function cleanLines(text){
+    const out=[];let skip=false;
+    for(let l of text.split(/\r?\n/)){
+      l=l.replace(/[|_•·]+/g,' ').replace(/^[^\w(]+/,'').replace(/\s+/g,' ').trim();
+      if(!l)continue;
+      if(FLAG_RE.test(l)){skip=true;continue;}                       // warning text is not task data
+      if(skip&&/^[a-z]/.test(l)&&l.split(' ').length<=5)continue;     // wrapped tail of that warning
+      skip=false;out.push(l);
+    }
+    return out;
+  }
+  function segments(lines){
+    const idx=[];lines.forEach((l,i)=>{if(CODE_RE.test(l))idx.push(i);});
+    if(idx.length<2)return [lines];
+    return idx.map((c,k)=>idx[0]>0?lines.slice(k?idx[k-1]+1:0,k===idx.length-1?lines.length:c+1):lines.slice(c,k===idx.length-1?lines.length:idx[k+1]));
+  }
+  function recordFrom(seg,known){
+    let text=seg.join(' '),asset='',hours='',client='';
+    const cm=text.match(CODE_RE);
+    if(cm){asset=cm[1].toUpperCase()+'-'+cm[2].replace(/[Oo]/g,'0').replace(/[lI]/g,'1')+(cm[3]?' — '+cm[3].toUpperCase():'');text=text.replace(cm[0],' ');}
+    const hm=text.match(HOURS_RE);
+    if(hm){hours=Number(hm[1].replace(',','.'));text=text.replace(hm[0],' ');}
+    for(const c of known.clients){const re=new RegExp('\\b'+esc(c)+'\\b','i');if(re.test(text)){client=c;text=text.replace(re,' ');break;}}
+    text=text.replace(/\s+/g,' ').replace(/^[-–—:\s]+|[-–—:\s]+$/g,'');
+    let project=known.projects.find(pr=>new RegExp(esc(pr),'i').test(text));
+    if(!project){const dm=text.match(/^(.*?\d+)\s*[-–—:]\s*(.+)$/);project=dm?dm[2]:text;}   // "Game 07 - Cash Chemistry" -> "Cash Chemistry"
+    return {kind:'Project work',client,project:project.trim(),asset,bidHours:'',actualHours:hours,notes:''};
+  }
+  function parseAll(raw){
+    const text=String(raw||'').trim(); if(!text)return [];
+    const lines=cleanLines(text), clean=lines.join('\n');
+    if(/\b(client|project|asset|bid|actual|spent|worked)\b|what\s*kind\s*of\s*time/i.test(clean)){const r=parsePrompt(clean);return r?[r]:[];}
+    const date=findDate(text)||$('selectedDate').value||dateString(today), known=knownLists();
+    const recs=segments(lines).map(sg=>recordFrom(sg,known)).filter(r=>r.asset||r.project||r.actualHours!=='');
+    if(!recs.length){const r=parsePrompt(clean);return r?[r]:[];}
+    return recs.map(r=>({date,...r,idleReason:''}));
+  }
+  function dayTotal(date,skipId){return entries.filter(e=>e.date===date&&e.id!==skipId).concat(pending.filter(q=>q.date===date)).reduce((t,e)=>t+num(e.actualHours),0);}
+  function renderPending(){
+    const box=$('pendingBox');
+    box.style.display=pending.length?'flex':'none';
+    box.innerHTML=pending.length?`<div class="pending-head">Queued (${pending.length}) — saved together with the entry in the form</div>`+pending.map((q,i)=>`<div class="pending-item"><span>${safe(q.asset||q.project||q.kind)} · ${fmt(q.actualHours)}h · ${safe(q.date)}</span><button type="button" data-unqueue="${i}">Remove</button></div>`).join(''):'';
+    box.querySelectorAll('[data-unqueue]').forEach(b=>b.addEventListener('click',()=>{pending.splice(Number(b.dataset.unqueue),1);renderPending();}));
+    $('addAnotherBtn').style.display=editingId?'none':'';
+    if(!editingId)$('saveBtn').textContent=pending.length?`Save ${pending.length+1} entries`:'Add entry';
+  }
+  function queueRecords(list){
+    let added=0,skipped=0;
+    list.forEach(r=>{
+      const h=r.actualHours===''?NaN:num(r.actualHours);
+      if(!Number.isFinite(h)||h>8||Math.round((dayTotal(r.date)+h)*100)/100>8){skipped++;return;}
+      pending.push({date:r.date,kind:r.kind||'Project work',client:r.client||'',project:r.project||'',asset:r.asset||'',workStatus:'done',bidHours:r.kind==='Idle time'?0:num(r.bidHours),actualHours:h,idleReason:r.idleReason||'',notes:r.notes||''});
+      added++;
+    });
+    renderPending();
+    toast(added?`${added} queued${skipped?`, ${skipped} skipped (no hours or over 8h)`:''}.`:'Nothing queued: hours missing or over 8h.');
+  }
+  function parseAsExtra(){
+    const recs=parseAll($('promptInput').value);
+    if(!recs.length){toast('Enter a task description first.');return;}
+    const base=readForm();
+    queueRecords(recs.map(r=>({...r,client:r.client||base.client,project:r.project||base.project})));
+  }
   function parseAndFill(){
-    parsed=parsePrompt($('promptInput').value);
+    if($('asExtra').checked){parseAsExtra();return;}
+    const recs=parseAll($('promptInput').value); parsed=recs[0];
     if(!parsed){toast('Enter a task description first.');return;}
     for(const [k,id] of Object.entries({date:'entryDate',kind:'kind',client:'client',project:'project',asset:'asset',bidHours:'bidHours',actualHours:'actualHours',notes:'notes'}))setField(id,k==='bidHours'&&parsed[k]===''?$('bidHours').value:parsed[k]);
     if(parsed.kind==='Idle time'){const reason=String(parsed.idleReason||'');const known=['Waiting for task assignment','Waiting for client feedback','Waiting for assets or files','Technical issue / software problem','Blocked by another team','Meeting or coordination delay','No tasks assigned'];const match=known.find(x=>reason.toLowerCase().includes(x.toLowerCase()));$('idleReason').value=match||(reason?'Other':'');$('idleDetails').value=match?'':reason;} updateKindFields();
     $('parsePreview').classList.remove('show');
     $('previewText').textContent=`${parsed.client||'No client'} · ${parsed.project||'No project'} · ${parsed.asset||'Task not detected'} · Bid: ${parsed.bidHours===''?'not found':fmt(parsed.bidHours)} · Actual: ${parsed.actualHours===''?'not found':fmt(parsed.actualHours)}`;
     $('entryPanel').scrollIntoView({behavior:'smooth',block:'start'});
-    {const miss=[];if(!parsed.client)miss.push('client');if(!parsed.project)miss.push('project');if(parsed.actualHours==='')miss.push('hours');toast(miss.length?`Form filled. Not found: ${miss.join(', ')}.`:'Form filled.');}
+    {const miss=[];if(!parsed.client)miss.push('client');if(!parsed.project)miss.push('project');if(parsed.actualHours==='')miss.push('hours');if(recs.length>1)queueRecords(recs.slice(1));toast((recs.length>1?`Form filled + ${recs.length-1} more found.`:'Form filled.')+(miss.length?` Not found: ${miss.join(', ')}.`:''));}
   }
-  function saveEntry(ev){
+  function saveEntry(ev,queueOnly){
     ev.preventDefault(); const data=readForm();
+    const addon=idleAddon(data); if(addon===false)return;
+    const idleOnly=!!addon&&$('actualHours').value==='';
     if(!data.date){toast('Please choose a work date.');return;}
-    if($('actualHours').value==='' || !Number.isFinite(Number($('actualHours').value)) || Number($('actualHours').value)<0 || data.actualHours>8){toast('Enter hours between 0 and 8.');return;}
+    if(!idleOnly&&($('actualHours').value==='' || !Number.isFinite(Number($('actualHours').value)) || Number($('actualHours').value)<0 || data.actualHours>8)){toast('Enter hours between 0 and 8.');return;}
     if(data.kind==='Idle time' && !data.idleReason){toast('Select a reason for idle time.');$('idleReason').focus();return;}
     if(data.kind==='Idle time' && $('idleReason').value==='Other' && !$('idleDetails').value.trim()){toast('Please explain the idle reason.');$('idleDetails').focus();return;}
-    const sameDay=entries.filter(e=>e.date===data.date && e.id!==editingId); const totalAlready=sameDay.reduce((t,e)=>t+num(e.actualHours),0); if(Math.round((totalAlready+data.actualHours)*100)/100>8){toast(`This date would exceed the 8-hour daily limit (${(totalAlready+data.actualHours).toFixed(1)}h). Edit existing entries first.`);return;}
+    const totalAlready=dayTotal(data.date,editingId), newHrs=(idleOnly?0:data.actualHours)+(addon?addon.actualHours:0); if(Math.round((totalAlready+newHrs)*100)/100>8){toast(`This date would exceed the 8-hour daily limit (${(totalAlready+newHrs).toFixed(1)}h). Edit existing entries first.`);return;}
+    if(queueOnly&&!editingId){
+      if(!idleOnly)pending.push({...data}); if(addon)pending.push(addon);
+      ['asset','bidHours','actualHours','idleHours','idleDetails','notes'].forEach(id=>{$(id).value='';});
+      $('workStatus').value='done'; $('idleReason').value=''; if($('kind').value==='Idle time')$('bidHours').value='0';
+      renderPending(); $('asset').focus(); toast(`Queued (${pending.length}). Fill the next one.`); return;
+    }
     if(editingId){
       entries=entries.map(e=>e.id===editingId?{...e,...data,updatedAt:Date.now()}:e);
       toast('Entry updated.');
     }else{
-      entries.push({...data,id:crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random(),createdAt:Date.now()});
-      toast('Work entry saved.');
+      const batch=[...pending,...(idleOnly?[]:[{...data}]),...(addon?[addon]:[])];
+      batch.forEach((b,i)=>entries.push({...b,id:crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random(),createdAt:Date.now()+i}));
+      toast(batch.length>1?`${batch.length} entries saved.`:'Work entry saved.');
+      pending=[];
     }
     persist(); $('selectedDate').value=data.date; $('chartMonth').value=data.date.slice(0,7); resetForm(); render();
   }
@@ -669,6 +869,34 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
   $('reportText').addEventListener('input',fitReport);
   window.addEventListener('resize',fitReport);
   $('copyReportBtn').addEventListener('click',copyReport);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&driveReady&&!tokenValid())refreshToken('').then(afterToken).catch(needReconnect);});
+  function showGate(msg,restoring){
+    $('loginGate').classList.add('show'); document.body.classList.add('gated'); document.querySelector('.app').inert=true;
+    $('gateMsg').textContent=msg||''; $('gateActions').style.display=restoring?'none':''; $('gateSkipBtn').style.display=restoring?'none':'';
+  }
+  function hideGate(){$('loginGate').classList.remove('show'); document.body.classList.remove('gated'); document.querySelector('.app').inert=false;}
+  function enterGuest(){
+    try{sessionStorage.setItem('dailyWorkTracker.guest','1');}catch(e){}
+    hideGate(); if(!driveReady)setGoogleStatus('Guest mode · saved on this device only · sign in to sync with Drive');
+  }
+  $('gateGuestBtn').addEventListener('click',enterGuest);
+  $('gateSkipBtn').addEventListener('click',enterGuest);
+  $('gateGoogleBtn').addEventListener('click',async()=>{
+    $('gateMsg').textContent='Opening Google…';
+    await googleSignIn();
+    if(!driveReady)$('gateMsg').textContent=$('googleStatus').textContent||'Sign-in did not finish. Try again or continue as a guest.';
+  });
+  (function initGate(){
+    let guest=false; try{guest=sessionStorage.getItem('dailyWorkTracker.guest')==='1';}catch(e){}
+    const sess=loadSession();
+    if(sess&&sess.connected&&googleConfigured())showGate('Restoring your Google session…',true);
+    else if(guest){hideGate();setGoogleStatus('Guest mode · saved on this device only · sign in to sync with Drive');}
+    else showGate('');
+  })();
+  restoreSession();
+  $('addAnotherBtn').addEventListener('click',()=>saveEntry({preventDefault(){}},true));
+  $('idleToggleBtn').addEventListener('click',()=>{idleOpen=!idleOpen;updateKindFields();if(idleOpen)$('idleHours').focus();});
+  $('idleHours').addEventListener('input',()=>{if($('kind').value==='Idle time')$('actualHours').value=$('idleHours').value;});
   updateKindFields(); render();
 })();
 </script>
