@@ -227,8 +227,8 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
           <div class="form-grid">
             <div class="field"><label for="entryDate">Work date</label><input id="entryDate" type="date" required></div>
             <div class="field"><label for="kind">Type</label><select id="kind"><option>Project work</option><option>Meeting</option><option>Training</option><option>Admin</option><option value="Idle time">Idle</option><option>Leave</option><option>Other</option></select></div>
-            <div class="field"><label for="client">Client</label><input id="client" placeholder="Client name"></div>
-            <div class="field"><label for="project">Project</label><input id="project" placeholder="Project name"></div>
+            <div class="field"><label for="client">Client</label><input id="client" placeholder="Client name" list="clientList" autocomplete="off"><datalist id="clientList"></datalist></div>
+            <div class="field"><label for="project">Project</label><input id="project" placeholder="Project name" list="projectList" autocomplete="off"><datalist id="projectList"></datalist></div>
             <div class="field"><label for="asset">Asset / task</label><input id="asset" placeholder="e.g. Walk cycle animation"></div>
             <div class="field"><label for="workStatus">Work status</label><select id="workStatus"><option value="done">Done</option><option value="WIP">WIP (work in progress)</option><option value="review">In review</option><option value="on hold">On hold</option><option value="waiting for feedback">Waiting for feedback</option><option value="blocked">Blocked</option></select></div>
             <div class="field"><label for="bidHours">Bid hours</label><input id="bidHours" type="number" min="0" step="any" inputmode="decimal" placeholder="e.g. 3.5"></div>
@@ -543,6 +543,32 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
     const kind=mapKind(one('kind')), bid=hrs('bid'), actual=hrs('actual');
     return {date,kind,client:one('client'),project:one('project'),asset:one('asset'),bidHours:kind==='Idle time'?0:(bid!==''?bid:free.bidHours),actualHours:actual!==''?actual:free.actualHours,idleReason:'',notes:cleanVal((sec.notes||[]).join(' '))};
   }
+  /* ---- Client / project history and suggestions ---- */
+  const HIST_KEY='dailyWorkTracker.history';
+  function loadHist(){try{const h=JSON.parse(localStorage.getItem(HIST_KEY)||'{}');return {clients:Array.isArray(h.clients)?h.clients:[],projects:Array.isArray(h.projects)?h.projects:[]};}catch(e){return {clients:[],projects:[]};}}
+  function rememberHistory(list){
+    const h=loadHist();let changed=false;
+    list.forEach(e=>{
+      if(!e||e.kind==='Idle time')return;
+      const c=String(e.client||'').trim(), p=String(e.project||'').trim();
+      if(c&&!h.clients.some(x=>x.toLowerCase()===c.toLowerCase())){h.clients.push(c);changed=true;}
+      if(p&&!h.projects.some(x=>x.name.toLowerCase()===p.toLowerCase()&&String(x.client||'').toLowerCase()===c.toLowerCase())){h.projects.push({name:p,client:c});changed=true;}
+    });
+    if(changed){try{localStorage.setItem(HIST_KEY,JSON.stringify(h));}catch(e){}}
+    return h;
+  }
+  function suggestions(){
+    const h=rememberHistory(entries);      // saved history, topped up from loaded / synced entries
+    const use={}; entries.forEach(e=>[e.client,e.project].forEach(v=>{const k=String(v||'').toLowerCase();if(k)use[k]=(use[k]||0)+1;}));
+    const rank=(x,y)=>(use[y.toLowerCase()]||0)-(use[x.toLowerCase()]||0)||x.localeCompare(y);
+    return {clients:[...h.clients].sort(rank),projects:h.projects.slice().sort((x,y)=>rank(x.name,y.name))};
+  }
+  function renderSuggestions(){
+    const sg=suggestions(), c=$('client').value.trim().toLowerCase(), seen=new Set();
+    $('clientList').innerHTML=sg.clients.map(x=>`<option value="${safe(x)}"></option>`).join('');
+    const mine=sg.projects.filter(q=>c&&String(q.client||'').toLowerCase()===c), rest=sg.projects.filter(q=>!mine.includes(q));
+    $('projectList').innerHTML=[...mine,...rest].filter(q=>{const k=q.name.toLowerCase();if(seen.has(k))return false;seen.add(k);return true;}).map(q=>`<option value="${safe(q.name)}"${q.client?` label="${safe(q.client)}"`:''}></option>`).join('');
+  }
   async function prepareImageForOcr(file){
     try{
       const bmp=await createImageBitmap(file);
@@ -562,7 +588,7 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
   const CODE_RE=/\b([A-Z]{2,6})\s*[-–—_]\s*([0-9OolI]{2,6})\b(?:\s*[-–—]?\s*([A-Za-z]\d{0,3})\b)?/;
   const HOURS_RE=/(\d+(?:[.,]\d+)?)\s*(?:h|hr|hrs|hours?)\b/i;
   const esc=t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-  function knownLists(){const u=k=>[...new Set(entries.map(e=>String(e[k]||'').trim()).filter(Boolean))].sort((a,b)=>b.length-a.length);return {clients:u('client'),projects:u('project')};}
+  function knownLists(){const h=suggestions(),len=(x,y)=>y.length-x.length;return {clients:[...new Set(h.clients)].sort(len),projects:[...new Set(h.projects.map(q=>q.name))].sort(len)};}
   function cleanLines(text){
     const out=[];let skip=false;
     for(let l of text.split(/\r?\n/)){
@@ -751,7 +777,7 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
     const stride=days>24?5:days>15?3:2;
     data.forEach((d,i)=>{if(i===0||(d.day%stride===0)||d.day===days)ctx.fillText(String(d.day),left+i*slot+slot/2,top+plotH+7);});
   }
-  function render(){renderStats();renderHistory();renderProjects();drawChart();renderReport();}
+  function render(){renderStats();renderHistory();renderProjects();drawChart();renderReport();renderSuggestions();}
   function exportCSV(){
     const headers=['Date','Type','Client','Project','Asset / Task','Bid Hours','Actual Hours','Idle Reason','Notes'];
     const rows=[headers,...entries.slice().sort((a,b)=>a.date.localeCompare(b.date)).map(e=>[e.date,e.kind,e.client,e.project,e.asset,e.bidHours,e.actualHours,e.idleReason||'',e.notes])];
@@ -893,6 +919,13 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
     else if(guest){hideGate();setGoogleStatus('Guest mode · saved on this device only · sign in to sync with Drive');}
     else showGate('');
   })();
+  $('client').addEventListener('input',renderSuggestions);
+  $('client').addEventListener('change',()=>{const v=$('client').value.trim();if(v){const hit=suggestions().clients.find(x=>x.toLowerCase()===v.toLowerCase());if(hit)$('client').value=hit;}renderSuggestions();});
+  $('project').addEventListener('change',()=>{
+    const v=$('project').value.trim(); if(!v)return;
+    const hit=suggestions().projects.find(q=>q.name.toLowerCase()===v.toLowerCase());
+    if(hit){$('project').value=hit.name;if(!$('client').value.trim()&&hit.client){$('client').value=hit.client;renderSuggestions();}}
+  });
   restoreSession();
   $('addAnotherBtn').addEventListener('click',()=>saveEntry({preventDefault(){}},true));
   $('idleToggleBtn').addEventListener('click',()=>{idleOpen=!idleOpen;updateKindFields();if(idleOpen)$('idleHours').focus();});
