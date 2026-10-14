@@ -303,7 +303,7 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
   function googleConfigured(){return window.WORK_TRACKER_GOOGLE_CLIENT_ID && !window.WORK_TRACKER_GOOGLE_CLIENT_ID.includes('PASTE_');}
   function setGoogleStatus(s){$('googleStatus').textContent=s;}
   /* ---- Google session: stays signed in across reloads and renews the 1-hour token ---- */
-  var googleExpiresAt=0, refreshTimer=null, tokenWaiters=[], mergeLocal=false;
+  var googleExpiresAt=0, refreshTimer=null, tokenWaiters=[], mergeLocal=false, grantedScope='';
   const SESSION_KEY='dailyWorkTracker.googleSession', GOOGLE_SCOPE='https://www.googleapis.com/auth/drive.file email profile';
   function saveSession(){try{localStorage.setItem(SESSION_KEY,JSON.stringify({token:googleAccessToken,expiresAt:googleExpiresAt,email:window.googleTrackerEmail||'',connected:true}));}catch(e){}}
   function loadSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||'null');}catch(e){return null;}}
@@ -316,7 +316,7 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
       callback:response=>{
         const w=tokenWaiters.splice(0);
         if(response.error){w.forEach(x=>x.reject(new Error(response.error)));return;}
-        googleAccessToken=response.access_token; googleExpiresAt=Date.now()+(Number(response.expires_in)||3600)*1000;
+        googleAccessToken=response.access_token; grantedScope=response.scope||''; googleExpiresAt=Date.now()+(Number(response.expires_in)||3600)*1000;
         saveSession(); scheduleRefresh(); w.forEach(x=>x.resolve(googleAccessToken));
       },
       error_callback:err=>{tokenWaiters.splice(0).forEach(x=>x.reject(new Error((err&&err.type)||'popup_failed')));}});
@@ -355,13 +355,31 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
       googleAccessToken=sess.token; googleExpiresAt=sess.expiresAt; scheduleRefresh();
       try{await syncFromDrive();return;}catch(e){}
     }
-    try{await refreshToken('');await afterToken();}catch(e){showGate('Your Google session ended. Sign in again, or continue as a guest.');}
+    try{await refreshToken('');await afterToken();}catch(e){(e&&e.status)?failDrive(driveProblem(e)):showGate('Your Google session ended. Sign in again, or continue as a guest.');}
+  }
+  function hasDriveScope(){return !grantedScope||grantedScope.includes('drive.file');}
+  function driveProblem(e){
+    const r=String((e&&(e.reason||e.message))||'').toLowerCase(), st=e&&e.status;
+    if(!hasDriveScope())return 'Google Drive permission was not given. Sign in again and tick the Google Drive box on the permission screen.';
+    if(/accessnotconfigured|has not been used|api.*disabled/.test(r))return 'The Google Drive API is not switched on for this app yet. The app owner needs to enable it in Google Cloud.';
+    if(st===403)return 'This Google account cannot use Drive with this app. Drive may be turned off for it, or blocked by your organisation admin.';
+    if(st===401)return 'Google rejected the login. Please sign in again.';
+    if(st===429||st>=500)return 'Google Drive is busy. Try again in a minute.';
+    return (e&&e.message)||'Unknown error.';
+  }
+  function failDrive(msg){
+    driveReady=false; clearSession();
+    setGoogleStatus('Google Drive unavailable · '+msg);
+    showGate(msg+' You can continue as a guest; your data stays on this device.');
   }
   async function driveFetch(url, options={}, retry=true){
     const token=await ensureToken();
     const response=await fetch(url,{...options,headers:{Authorization:'Bearer '+token,...(options.headers||{})}});
     if(response.status===401&&retry){googleExpiresAt=0;return driveFetch(url,options,false);}
-    if(!response.ok) throw new Error('Google Drive returned '+response.status+'; please sign in again.');
+    if(!response.ok){
+      let reason=''; try{const j=await response.clone().json();reason=(j.error&&((j.error.errors&&j.error.errors[0]&&j.error.errors[0].reason)||j.error.status||j.error.message))||'';}catch(e){}
+      const err=new Error('Google Drive returned '+response.status+(reason?' ('+reason+')':'')); err.status=response.status; err.reason=String(reason); throw err;
+    }
     if(response.status===204)return null;
     return response.json();
   }
@@ -400,11 +418,16 @@ button.primary:hover{background:linear-gradient(135deg,var(--g1),var(--g2));filt
     if(!googleConfigured()){alert('Google sign-in is not configured. Follow README.md and replace PASTE_GOOGLE_OAUTH_CLIENT_ID_HERE in index.html.');return;}
     if(!window.google?.accounts?.oauth2){alert('Google sign-in is loading. Please try again in a moment.');return;}
     mergeLocal=true;
-    try{await refreshToken((loadSession()||{}).connected?'':'consent');}catch(e){setGoogleStatus('Google sign-in failed: '+e.message);return;}
+    try{await refreshToken((loadSession()||{}).connected?'':'consent');}
+    catch(e){
+      const m=/access_denied/.test(e.message)?'Google blocked this account. If the app is still in testing mode, the owner must add your email as a test user. You may also have cancelled.':/popup/.test(e.message)?'The Google window was closed or blocked. Allow pop-ups and try again.':e.message;
+      setGoogleStatus('Google sign-in failed · '+m); return;
+    }
+    if(!hasDriveScope()){failDrive(driveProblem({}));return;}
     try{
       const u=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+googleAccessToken}}).then(r=>r.json());
       window.googleTrackerEmail=u.email||''; saveSession(); $('googleSignInBtn').textContent='Continue with Google'; await syncFromDrive();
-    }catch(e){driveReady=false;setGoogleStatus('Could not connect Drive: '+e.message);alert('Google Drive connection failed. Check API and OAuth settings in README.md.');}
+    }catch(e){failDrive(driveProblem(e));}
   }
   function googleSignOut(){if(googleAccessToken&&window.google?.accounts?.oauth2)google.accounts.oauth2.revoke(googleAccessToken,()=>{});googleAccessToken=null;googleExpiresAt=0;clearTimeout(refreshTimer);clearSession();$('googleSignInBtn').textContent='Continue with Google';driveFileId=null;driveReady=false;entries=[];window.googleTrackerEmail='';$('googleSignInBtn').style.display='inline-block';$('googleSignOutBtn').style.display='none';$('googleSetupNotice').style.display='block';setGoogleStatus('Signed out · Sign in to load your Drive data');try{sessionStorage.removeItem('dailyWorkTracker.guest');}catch(e){}showGate('You have signed out.');render();}
 
